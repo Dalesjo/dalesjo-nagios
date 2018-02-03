@@ -2,10 +2,12 @@
 
 # Defaults
 STATS=0;
+DIRECTORY="/var/lib/varnish/$HOSTNAME/"
 
-while getopts 'c:w:s' flag; do
+while getopts 'c:d:w:s' flag; do
   case "${flag}" in
     c) CRITICAL="${OPTARG}" ;;
+    d) DIRECTORY="${OPTARG}" ;;
     w) WARNING=="${OPTARG}" ;;
     s) STATS=1;;
   esac
@@ -17,6 +19,7 @@ if [ -z $CRITICAL ] || [ -z $WARNING ] ; then
   echo "Check if varnish hit ratio"
   echo "";
   echo "Flags:";
+  echo "  -d    Working directory for varnish"
   echo "  -c    if below this percentage report a critical error"
   echo "  -w    if below this percentage report a warning"
   echo "  -s    Create statistics for nagios"
@@ -42,8 +45,8 @@ if ! hash bc 2>/dev/null; then
   exit 3;
 fi
 
-CACHE_HIT=`varnishstat -1 | grep "MAIN.cache_hit " | awk '{print $2}' | tr -d '\n'`
-CACHE_MISS=`varnishstat -1 | grep "MAIN.cache_miss " | awk '{print $2}' | tr -d '\n'`
+CACHE_HIT=`varnishstat -n $DIRECTORY -1 | grep "MAIN.cache_hit " | awk '{print $2}' | tr -d '\n'`
+CACHE_MISS=`varnishstat -n $DIRECTORY -1 | grep "MAIN.cache_miss " | awk '{print $2}' | tr -d '\n'`
 
 TOTAL_HITS=$((CACHE_HIT+CACHE_MISS))
 RATIO=$((CACHE_HIT/TOTAL_HITS))

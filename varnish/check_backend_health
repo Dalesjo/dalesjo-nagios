@@ -3,10 +3,13 @@
 # Defaults
 VARIABLE="health";
 STATS=0;
-
-while getopts 'b:s' flag; do
+SECRET=/etc/varnish/secret
+HOST=127.0.0.1:6082
+while getopts 'b:S:T:s' flag; do
   case "${flag}" in
     b) BACKEND="${OPTARG}" ;;
+    T) HOST="${OPTARG}" ;;
+    S) SECRET="${OPTARG}" ;;
     s) STATS=1;;
   esac
 done
@@ -18,6 +21,8 @@ if [ -z $BACKEND ] ; then
   echo "";
   echo "Flags:";
   echo "  -b    Name of backend to check."
+  echo "  -S    Path to secret file, default: /etc/varnish/secret"
+  echo "  -T    connection string to admin interface, default 127.0.0.1:6082"
   echo "  -s    Create statistics for nagios"
   echo ""
   echo "Exitcodes:"
@@ -35,7 +40,7 @@ if ! hash varnishadm 2>/dev/null; then
   exit 3;
 fi
 
-OUTPUT=`varnishadm backend.list | grep "boot.$BACKEND" | head -n1`:
+OUTPUT=`varnishadm -S $SECRET -T $HOST backend.list | grep "boot.$BACKEND" | head -n1`:
 STATUS=`echo $OUTPUT | awk '{print $3}'`;
 
 THRESHOLD=`echo $OUTPUT | awk '{print $4}' | cut -d "/" -f 1`

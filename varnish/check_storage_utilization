@@ -2,10 +2,12 @@
 
 # Defaults
 STATS=0;
+DIRECTORY="/var/lib/varnish/$HOSTNAME/"
 
-while getopts 'S:c:w:s' flag; do
+while getopts 'S:d:c:w:s' flag; do
   case "${flag}" in
     S) STORAGE="${OPTARG}" ;;
+    d) DIRECTORY="${OPTARG}" ;;
     c) CRITICAL="${OPTARG}" ;;
     w) WARNING=="${OPTARG}" ;;
     s) STATS=1;;
@@ -18,6 +20,7 @@ if [ -z $STORAGE ] || [ -z $CRITICAL ] || [ -z $WARNING ] ; then
   echo "Check how much of a storage is being used."
   echo "";
   echo "Flags:";
+  echo "  -d    Working directory for varnish"
   echo "  -S    Name of storage. malloc based is named SMA.yourname. filebased is named SMF.youname"
   echo "  -c    if above this percentage report a critical error"
   echo "  -w    if above this percentage report a warning"
@@ -44,8 +47,8 @@ if ! hash bc 2>/dev/null; then
   exit 3;
 fi
 
-G_BYTES=`varnishstat -1 | grep "$STORAGE.g_bytes " | awk '{print $2}' | tr -d '\n'`
-G_SPACE=`varnishstat -1 | grep "$STORAGE.g_space " | awk '{print $2}' | tr -d '\n'`
+G_BYTES=`varnishstat -n $DIRECTORY -1 | grep "$STORAGE.g_bytes " | awk '{print $2}' | tr -d '\n'`
+G_SPACE=`varnishstat -n $DIRECTORY -1 | grep "$STORAGE.g_space " | awk '{print $2}' | tr -d '\n'`
 TOTAL=$((G_BYTES+G_SPACE))
 RATIO=`printf '%.0f\n' $(echo "($G_BYTES/$TOTAL)*100" | bc -l)`
 
