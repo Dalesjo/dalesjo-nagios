@@ -1,0 +1,60 @@
+#!/bin/bash
+
+# Defaults
+VARIABLE="health";
+STATS=0;
+
+while getopts 'b:s' flag; do
+  case "${flag}" in
+    b) BACKEND="${OPTARG}" ;;
+    s) STATS=1;;
+  esac
+done
+
+if [ -z $BACKEND ] ; then
+  echo "check_backend_health [OPTIONS...]"
+  echo "";
+  echo "Check if varnish backend is Healthy or Sick"
+  echo "";
+  echo "Flags:";
+  echo "  -b    Name of backend to check."
+  echo "  -s    Create statistics for nagios"
+  echo "Exitcodes:"
+  echo "0 Backend is Healthy";
+  echo "2 Backend is Sick";
+  echo "3 Backend does not exist or returns unknown status.";
+  exit 3;
+fi;
+
+if ! hash varnishadm 2>/dev/null; then
+  echo "varnishadm is required, please install, for centos 7 run 'yum install varnish -y'"
+  exit 3;
+fi
+
+OUTPUT=`varnishadm backend.list | grep "boot.$BACKEND" | head -n1`:
+STATUS=`echo $OUTPUT | awk '{print $3}'`;
+
+THRESHOLD=`echo $OUTPUT | awk '{print $4}' | cut -d "/" -f 1`
+WINDOW=`echo $OUTPUT | awk '{print $4}' | cut -d "/" -f 2`
+DATE=`echo -n $OUTPUT | rev | cut -d " " -f 1-6 | rev | cut -c 1-29 | xargs -0 date +"%s" -d`
+NOW=`date +%s`
+AGE=`expr $NOW - $DATE`
+
+if [ "$STATUS" == "Healthy" ]; then
+  echo -n "Backend is Healthy changed $AGE seconds ago.";
+  if [ $STATS -eq 1 ]; then
+    echo -n "| status=$THRESHOLD;0;$WINDOW";
+  fi;
+  echo;
+  exit 0;
+elif [ "$STATUS" == "Sick" ]; then
+  echo -n "Backend is Sick changed $AGE seconds ago.";
+  if [ $STATS -eq 1 ]; then
+    echo -n "| status=$THRESHOLD;0;$WINDOW";
+  fi;
+  echo;
+  exit 2;
+else
+  echo "Unknown status: $status";
+  exit 3;
+fi;
