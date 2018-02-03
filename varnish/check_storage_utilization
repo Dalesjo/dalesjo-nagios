@@ -1,0 +1,76 @@
+#!/bin/bash
+
+# Defaults
+STATS=0;
+
+while getopts 'S:c:w:s' flag; do
+  case "${flag}" in
+    S) STORAGE="${OPTARG}" ;;
+    c) CRITICAL="${OPTARG}" ;;
+    w) WARNING=="${OPTARG}" ;;
+    s) STATS=1;;
+  esac
+done
+
+if [ -z $STORAGE ] || [ -z $CRITICAL ] || [ -z $WARNING ] ; then
+  echo "check_storage_utilization [OPTIONS...]"
+  echo "";
+  echo "Check how much of a storage is being used."
+  echo "";
+  echo "Flags:";
+  echo "  -S    Name of storage. malloc based is named SMA.yourname. filebased is named SMF.youname"
+  echo "  -c    if above this percentage report a critical error"
+  echo "  -w    if above this percentage report a warning"
+  echo "  -s    Create statistics for nagios"
+  echo " "
+  echo "Exitcodes"
+  echo "  0     storage utilization is ok";
+  echo "  1     storage utilization is above warning level"
+  echo "  2     storage utilization is above critical level";
+  echo "  3     unknown error or software is missing";
+  echo " "
+  echo "Example"
+  echo "./check_storage_utilization -S SMF.play -w 80 -c 90 -s"
+  exit 3;
+fi;
+
+if ! hash varnishstat 2>/dev/null; then
+  echo "varnishstat is required, please install, for centos 7 run 'yum install varnish -y'"
+  exit 3;
+fi
+
+if ! hash bc 2>/dev/null; then
+  echo "bc is required, please install, for centos 7 run 'yum install bc -y'"
+  exit 3;
+fi
+
+G_BYTES=`varnishstat -1 | grep "$STORAGE.g_bytes " | awk '{print $2}' | tr -d '\n'`
+G_SPACE=`varnishstat -1 | grep "$STORAGE.g_space " | awk '{print $2}' | tr -d '\n'`
+TOTAL=$((G_BYTES+G_SPACE))
+RATIO=`printf '%.0f\n' $(echo "($G_BYTES/$TOTAL)*100" | bc -l)`
+
+G_BYTES_HUMAN=`numfmt --to=si --suffix=B $G_BYTES | tr -d '\n'`
+TOTAL_HUMAN=`numfmt --to=si --suffix=B $TOTAL | tr -d '\n'`
+
+if [ $RATIO -gt $CRITICAL ]; then
+  echo -n "$RATIO% used, $G_BYTES_HUMAN of $TOTAL_HUMAN"
+  if [ $STATS -eq 1 ]; then
+    echo -n "| storage=$RATIO;0;100";
+  fi;
+  echo;
+  exit 2;
+elif [ $RATIO -gt $CRITICAL ]; then
+  echo -n "$RATIO% used, $G_BYTES_HUMAN of $TOTAL_HUMAN"
+  if [ $STATS -eq 1 ]; then
+    echo -n "| storage=$RATIO;0;100";
+  fi;
+  echo;
+  exit 1;
+else
+  echo -n "$RATIO% used, $G_BYTES_HUMAN of $TOTAL_HUMAN"
+  if [ $STATS -eq 1 ]; then
+    echo -n "| storage=$RATIO;0;100";
+  fi;
+  echo;
+  exit 0;
+fi;

@@ -17,8 +17,8 @@ if [ -z $CRITICAL ] || [ -z $WARNING ] ; then
   echo "Check if varnish hit ratio"
   echo "";
   echo "Flags:";
-  echo "  -c    Name of backend to check."
-  echo "  -w    Create statistics for nagios"
+  echo "  -c    if below this percentage report a critical error"
+  echo "  -w    if below this percentage report a warning"
   echo "  -s    Create statistics for nagios"
   echo " "
   echo "Exitcodes"
@@ -49,22 +49,26 @@ TOTAL_HITS=$((CACHE_HIT+CACHE_MISS))
 RATIO=$((CACHE_HIT/TOTAL_HITS))
 RATIO=`printf '%.0f\n' $(echo "($CACHE_HIT/$TOTAL_HITS)*100" | bc -l)`
 
+CACHE_HIT_HUMAN=`numfmt --to=si  $CACHE_HIT | tr -d '\n'`
+TOTAL_HITS_HUMAN=`numfmt --to=si  $TOTAL_HITS | tr -d '\n'`
+
+
 if [ $RATIO -lt $CRITICAL ]; then
-  echo -n "Hit ratio low, $RATIO%"
+  echo -n "$RATIO% cached, $CACHE_HIT_HUMAN of $TOTAL_HITS_HUMAN requests"
   if [ $STATS -eq 1 ]; then
     echo -n "| hitratio=$RATIO;0;100";
   fi;
   echo;
   exit 2;
-elif [ $RATION $lt $WARNING ]; then
-  echo -n "Hit ratio low, $RATIO%"
+elif [ $RATIO -lt $WARNING ]; then
+  echo -n "$RATIO% cached, $CACHE_HIT_HUMAN of $TOTAL_HITS_HUMAN requests"
   if [ $STATS -eq 1 ]; then
     echo -n "| hitratio=$RATIO;0;100";
   fi;
   echo;
   exit 1;
 else
-  echo -n "Hit ratio OK, $RATIO%"
+  echo -n "$RATIO% cached, $CACHE_HIT_HUMAN of $TOTAL_HITS_HUMAN requests"
   if [ $STATS -eq 1 ]; then
     echo -n "| hitratio=$RATIO;0;100";
   fi;
