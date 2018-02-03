@@ -1,0 +1,73 @@
+#!/bin/bash
+
+# Defaults
+STATS=0;
+
+while getopts 'c:w:s' flag; do
+  case "${flag}" in
+    c) CRITICAL="${OPTARG}" ;;
+    w) WARNING=="${OPTARG}" ;;
+    s) STATS=1;;
+  esac
+done
+
+if [ -z $CRITICAL ] || [ -z $WARNING ] ; then
+  echo "check_hit_ratio [OPTIONS...]"
+  echo "";
+  echo "Check if varnish hit ratio"
+  echo "";
+  echo "Flags:";
+  echo "  -c    Name of backend to check."
+  echo "  -w    Create statistics for nagios"
+  echo "  -s    Create statistics for nagios"
+  echo " "
+  echo "Exitcodes"
+  echo "  0     hit ratio is ok";
+  echo "  1     hit ratio is below warning level"
+  echo "  2     hit ratio is below critical level";
+  echo "  3     unknown error or software is missing";
+  echo " "
+  echo "Example"
+  echo "./check_hit_ration -w 80 -c 50"
+  exit 3;
+fi;
+
+if ! hash varnishstat 2>/dev/null; then
+  echo "varnishstat is required, please install, for centos 7 run 'yum install varnish -y'"
+  exit 3;
+fi
+
+if ! hash bc 2>/dev/null; then
+  echo "bc is required, please install, for centos 7 run 'yum install bc -y'"
+  exit 3;
+fi
+
+CACHE_HIT=`varnishstat -1 | grep "MAIN.cache_hit " | awk '{print $2}' | tr -d '\n'`
+CACHE_MISS=`varnishstat -1 | grep "MAIN.cache_miss " | awk '{print $2}' | tr -d '\n'`
+
+TOTAL_HITS=$((CACHE_HIT+CACHE_MISS))
+RATIO=$((CACHE_HIT/TOTAL_HITS))
+RATIO=`printf '%.0f\n' $(echo "($CACHE_HIT/$TOTAL_HITS)*100" | bc -l)`
+
+if [ $RATIO -lt $CRITICAL ]; then
+  echo -n "Hit ratio low, $RATIO%"
+  if [ $STATS -eq 1 ]; then
+    echo -n "| hitratio=$RATIO;0;100";
+  fi;
+  echo;
+  exit 2;
+elif [ $RATION $lt $WARNING ]; then
+  echo -n "Hit ratio low, $RATIO%"
+  if [ $STATS -eq 1 ]; then
+    echo -n "| hitratio=$RATIO;0;100";
+  fi;
+  echo;
+  exit 1;
+else
+  echo -n "Hit ratio OK, $RATIO%"
+  if [ $STATS -eq 1 ]; then
+    echo -n "| hitratio=$RATIO;0;100";
+  fi;
+  echo;
+  exit 0;
+fi;

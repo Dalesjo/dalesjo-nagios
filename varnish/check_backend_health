@@ -19,10 +19,14 @@ if [ -z $BACKEND ] ; then
   echo "Flags:";
   echo "  -b    Name of backend to check."
   echo "  -s    Create statistics for nagios"
+  echo ""
   echo "Exitcodes:"
-  echo "0 Backend is Healthy";
-  echo "2 Backend is Sick";
-  echo "3 Backend does not exist or returns unknown status.";
+  echo "  0     Backend is Healthy";
+  echo "  2     Backend is Sick";
+  echo "  3     Backend does not exist or returns unknown status.";
+  echo ""
+  echo "Example"
+  echo "./check_backend_health -b video -s"
   exit 3;
 fi;
 
