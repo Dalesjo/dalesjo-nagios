@@ -40,7 +40,7 @@ if ! hash varnishadm 2>/dev/null; then
   exit 3;
 fi
 
-OUTPUT=`varnishadm -S $SECRET -T $HOST backend.list | grep "boot.$BACKEND" | head -n1`:
+OUTPUT=`varnishadm -S $SECRET -T $HOST backend.list | grep "\.$BACKEND" | head -n1`
 STATUS=`echo $OUTPUT | awk '{print $3}'`;
 
 THRESHOLD=`echo $OUTPUT | awk '{print $4}' | cut -d "/" -f 1`
@@ -64,6 +64,6 @@ elif [ "$STATUS" == "Sick" ]; then
   echo;
   exit 2;
 else
-  echo "Unknown status: $status";
+  echo "Unknown output: $OUTPUT";
   exit 3;
 fi;
