@@ -1,0 +1,65 @@
+#!/bin/bash
+
+#Defaults
+CRITICAL=2
+WARNING=1
+
+while getopts 'c:w:j:' flag; do
+  case "${flag}" in
+    c) CRITICAL="${OPTARG}" ;;
+    w) WARNING="${OPTARG}" ;;
+    j) JAIL="${OPTARG}" ;;
+  esac
+done
+
+if [ -z $JAIL ] ; then
+  echo "check_ipset [OPTIONS...]"
+  echo "";
+  echo "Check that there is a ipset list with as many members as jail has banned"
+  echo "";
+  echo "Flags:";
+  echo "  -c    how many members are allowed to differ from jail before critical is return, default: 2"
+  echo "  -w    how many members are allowed to differ from jail before warning is return, default: 1"
+  echo "  -j    name of fail2ban jail."
+  echo ""
+  echo "Exitcodes:"
+  echo "  0     ipset list is healty";
+  echo "  1     ipset is missing more members than value -w";
+  echo "  2     ipset is missing more members than value -c";
+  echo ""
+  echo "Example"
+  echo "./check_ipset -w 2 -c 3 -j sshd"
+  exit 3;
+fi;
+
+OUTPUT=`sudo fail2ban-client status $JAIL`
+BANNED=`echo "$OUTPUT" | grep "Currently banned" | awk '{print $NF}' | tr -d '\n'`
+
+if [ -z $BANNED ] ; then
+  echo "Could not read banned output $OUTPUT";
+  exit 3;
+fi;
+
+if [ $BANNED -lt "1" ]; then
+  echo "No active bans currently"
+  exit 0;
+fi;
+
+MINIMUMCRITICAL=$((BANNED+CRITICAL))
+MINIMUMWARNING=$((BANNED+WARNING))
+OUTPUT=`sudo ipset list fail2ban-$JAIL`;
+MEMBERS=`echo "$OUTPUT" | tail -n +8 | wc -l`;
+
+if [ -z $MEMBERS ] ; then
+  echo "Could not read ipset output $OUTPUT";
+  exit 3;
+fi;
+
+echo "Currently in Jail $BANNED, blocked by iptables $MEMBERS"
+if [ $MEMBERS -lt $MINIMUMCRITICAL ]; then
+  exit 2;
+elif [ $MEMBERS -lt $MINIMUMWARNING ]; then
+  exit 1;
+else
+  exit 0;
+fi;

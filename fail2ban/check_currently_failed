@@ -1,0 +1,55 @@
+#!/bin/bash
+
+#Defaults
+CRITICAL=100
+WARNING=50
+
+while getopts 'c:w:j:' flag; do
+  case "${flag}" in
+    c) CRITICAL="${OPTARG}" ;;
+    w) WARNING="${OPTARG}" ;;
+    j) JAIL="${OPTARG}" ;;
+  esac
+done
+
+if [ -z $JAIL ] ; then
+  echo "check_currently_failed [OPTIONS...]"
+  echo "";
+  echo "Check how many failed atempts that are currently in your log file, depends on fail2ban setting findtime. returns warning or critical if exceeding set values."
+  echo "";
+  echo "Flags:";
+  echo "  -c    value that critical is return, default: 100"
+  echo "  -w    value that warning is return, default: 50"
+  echo "  -j    name of fail2ban jail."
+  echo ""
+  echo "Exitcodes:"
+  echo "  0     Jail is healthy";
+  echo "  1     Jail has find more than -w IP-numbers in logfile";
+  echo "  2     Jail has find more than -c IP-numbers in logfile";
+  echo ""
+  echo "Example"
+  echo "./check_currently_failed -w 100 -c 200 -j sshd"
+  exit 3;
+fi;
+
+if ! hash fail2ban-client 2>/dev/null; then
+  echo "fail2ban is required, please install, for centos 7 run 'yum install fail2ban -y'"
+  exit 3;
+fi
+
+OUTPUT=`sudo fail2ban-client status $JAIL`
+FAILED=`echo "$OUTPUT" | grep "Currently failed" | awk '{print $NF}' | tr -d '\n'`
+
+if [ -z $FAILED ] ; then
+  echo "Could not read output $OUTPUT";
+  exit 3;
+fi;
+
+echo "Currently failed: $FAILED";
+if [ $FAILED -gt $CRITICAL ]; then
+  exit 2;
+elif [ $FAILED -gt $WARNING ]; then
+  exit 1;
+else
+  exit 0;
+fi;

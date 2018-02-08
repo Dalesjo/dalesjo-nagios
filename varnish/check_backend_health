@@ -5,6 +5,7 @@ VARIABLE="health";
 STATS=0;
 SECRET=/etc/varnish/secret
 HOST=127.0.0.1:6082
+
 while getopts 'b:S:T:s' flag; do
   case "${flag}" in
     b) BACKEND="${OPTARG}" ;;
