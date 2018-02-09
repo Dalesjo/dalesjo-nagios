@@ -1,0 +1,35 @@
+#!/bin/bash
+
+while getopts 'd:r:' flag; do
+  case "${flag}" in
+    d) DIRECTORY="${OPTARG}" ;;
+    r) REPORT="${OPTARG}" ;;
+  esac
+done
+
+if [ -z $DIRECTORY ] || [ -z $REPORT ]; then
+  echo "make_report [OPTIONS...]"
+  echo "";
+  echo "Creates a text report of the entire directory"
+  echo "";
+  echo "Flags:";
+  echo "  -d    Directory to scan"
+  echo "  -r    report file to create/write"
+  echo " "
+  echo " "
+  echo "Example"
+  echo "./make_report -d /home/backup/snapshots/daily.0 -r /home/backup/report"
+  exit 3;
+fi;
+
+if ! hash find 2>/dev/null; then
+  echo "find is required"
+  exit 3;
+fi
+
+if ! hash sort 2>/dev/null; then
+  echo "sort is required"
+  exit 3;
+fi
+
+find $DIRECTORY -type f -printf "%T@\t%s\t%n\t%P\n" | sort -nr > $REPORT

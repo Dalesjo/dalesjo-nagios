@@ -1,0 +1,61 @@
+#!/usr/bin/perl -w
+
+use strict;
+use Getopt::Std;
+use POSIX;
+
+my %options=();
+getopts("r:c:w:", \%options);
+
+if(!defined($options{r}) || !defined($options{c}) || !defined($options{w})) {
+  print "check_size [OPTIONS...]";
+  print "";
+  print "Reads text report and returns total size";
+  print "";
+  print "Flags:";
+  print "  -r    report file to read";
+  print "  -c    if report larger than this amount of bytes report a critical error";
+  print "  -w    if report larger than this amount of bytes report a warning";
+  print " ";
+  print " ";
+  print "Example";
+  print "./check_size /home/backup/report";
+  exit 3;
+
+  print "what to do";
+  exit 3;
+}
+
+my $totalSize = 0;
+my $totalFiles = 0;
+if (open(my $fh, '<:encoding(UTF-8)', $options{r})) {
+  while (my $row = <$fh>) {
+    chomp $row;
+    my @words = split /\t/, $row;
+    $totalSize += $words[1];
+    $totalFiles++;
+  }
+} else {
+  warn "Could not open file '". $options{r} ."'";
+  exit(3);
+}
+
+my $totalSizeKilo = floor($totalSize/1000);
+my $totalSizeMega = floor($totalSizeKilo/1000);
+my $totalSizeGiga = floor($totalSizeMega/1000);
+my $totalSizeHuman = "";
+
+if($totalSizeGiga > 10) {
+  $totalSizeHuman = $totalSizeGiga ."GB";
+} elsif($totalSizeMega > 10) {
+  $totalSizeHuman = $totalSizeMega ."MB";
+} else {
+  $totalSizeHuman = $totalSizeKilo ."KB";
+}
+
+print "backup is $totalSizeHuman with $totalFiles files\n";
+if($totalSize > $options{"c"}) {
+  exit(2);
+} elsif($totalSize > $options{"w"}) {
+  exit(1);
+}
