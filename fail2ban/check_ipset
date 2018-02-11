@@ -45,8 +45,12 @@ if [ $BANNED -lt "1" ]; then
   exit 0;
 fi;
 
-MINIMUMCRITICAL=$((BANNED+CRITICAL))
-MINIMUMWARNING=$((BANNED+WARNING))
+MINIMUMCRITICAL=$((BANNED-CRITICAL))
+MINIMUMWARNING=$((BANNED-WARNING))
+
+MAXIMUMCRITICAL=$((BANNED+CRITICAL))
+MAXIMUMWARNING=$((BANNED+WARNING))
+
 OUTPUT=`sudo ipset list fail2ban-$JAIL`;
 MEMBERS=`echo "$OUTPUT" | tail -n +8 | wc -l`;
 
@@ -56,9 +60,10 @@ if [ -z $MEMBERS ] ; then
 fi;
 
 echo "Currently in Jail $BANNED, blocked by iptables $MEMBERS"
-if [ $MEMBERS -lt $MINIMUMCRITICAL ]; then
+
+if [ $MEMBERS -lt $MINIMUMCRITICAL ] || [ $MEMBERS -gt $MAXIMUMCRITICAL ]; then
   exit 2;
-elif [ $MEMBERS -lt $MINIMUMWARNING ]; then
+elif [ $MEMBERS -lt $MINIMUMWARNING ] || [ $MEMBERS -gt $MAXIMUMWARNING ]; then
   exit 1;
 else
   exit 0;
