@@ -46,9 +46,9 @@ if [ -z $FAILED ] ; then
 fi;
 
 echo "Currently failed: $FAILED";
-if [ $FAILED -gt $CRITICAL ]; then
+if [ $FAILED -ge $CRITICAL ]; then
   exit 2;
-elif [ $FAILED -gt $WARNING ]; then
+elif [ $FAILED -ge $WARNING ]; then
   exit 1;
 else
   exit 0;

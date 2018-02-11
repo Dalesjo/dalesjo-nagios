@@ -4,11 +4,11 @@
 CRITICAL=48
 WARNING=24
 
-while getopts 'd:r:' flag; do
+while getopts 'r:c:w:' flag; do
   case "${flag}" in
     r) REPORT="${OPTARG}" ;;
     c) CRITICAL="${OPTARG}" ;;
-    w) WARNING=="${OPTARG}" ;;
+    w) WARNING="${OPTARG}" ;;
   esac
 done
 
@@ -40,9 +40,9 @@ HOURS=`expr $AGE / 3600`
 
 echo "$FILE is $HOURS Hours old with $COPIES copies.";
 
-if [ $HOURS -gt $CRITICAL ]; then
+if [ $HOURS -ge $CRITICAL ]; then
   exit 2;
-elif [ $HOURS -gt $WARNING ]; then
+elif [ $HOURS -ge $WARNING ]; then
   exit 1;
 else
   exit 0;

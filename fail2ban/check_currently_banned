@@ -41,9 +41,9 @@ if [ -z $BANNED ] ; then
 fi;
 
 echo "Currently Banned: $BANNED";
-if [ $BANNED -gt $CRITICAL ]; then
+if [ $BANNED -ge $CRITICAL ]; then
   exit 2;
-elif [ $BANNED -gt $WARNING ]; then
+elif [ $BANNED -ge $WARNING ]; then
   exit 1;
 else
   exit 0;

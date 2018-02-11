@@ -56,14 +56,14 @@ CACHE_HIT_HUMAN=`numfmt --to=si  $CACHE_HIT | tr -d '\n'`
 TOTAL_HITS_HUMAN=`numfmt --to=si  $TOTAL_HITS | tr -d '\n'`
 
 
-if [ $RATIO -lt $CRITICAL ]; then
+if [ $RATIO -le $CRITICAL ]; then
   echo -n "$RATIO% cached, $CACHE_HIT_HUMAN of $TOTAL_HITS_HUMAN requests"
   if [ $STATS -eq 1 ]; then
     echo -n "| hitratio=$RATIO;0;100";
   fi;
   echo;
   exit 2;
-elif [ $RATIO -lt $WARNING ]; then
+elif [ $RATIO -le $WARNING ]; then
   echo -n "$RATIO% cached, $CACHE_HIT_HUMAN of $TOTAL_HITS_HUMAN requests"
   if [ $STATS -eq 1 ]; then
     echo -n "| hitratio=$RATIO;0;100";
