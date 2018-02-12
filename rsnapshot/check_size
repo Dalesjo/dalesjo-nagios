@@ -1,61 +1,49 @@
-#!/usr/bin/perl -w
+#!/bin/bash
 
-use strict;
-use Getopt::Std;
-use POSIX;
+while getopts 'r:c:w:C:W:' flag; do
+  case "${flag}" in
+    r) REPORT="${OPTARG}" ;;
+    c) CRITICAL="${OPTARG}" ;;
+    w) WARNING="${OPTARG}" ;;
+    C) CRITICALFILES="${OPTARG}" ;;
+    W) WARNINGFILES="${OPTARG}" ;;
+  esac
+done
 
-my %options=();
-getopts("r:c:w:", \%options);
-
-if(!defined($options{r}) || !defined($options{c}) || !defined($options{w})) {
-  print "check_size [OPTIONS...]";
-  print "";
-  print "Reads text report and returns total size";
-  print "";
-  print "Flags:";
-  print "  -r    report file to read";
-  print "  -c    if report larger than this amount of bytes report a critical error";
-  print "  -w    if report larger than this amount of bytes report a warning";
-  print " ";
-  print " ";
-  print "Example";
-  print "./check_size /home/backup/report";
+if [ -z $REPORT ] || [ -z $CRITICAL ]  || [ -z $WARNING ] || [ -z $CRITICALFILES ]  || [ -z $WARNINGFILES ]; then
+  echo "check_size [OPTIONS...]"
+  echo "";
+  echo "Reads text report and returns total size";
+  echo "";
+  echo "Flags:";
+  echo "  -r    report file to read"
+  echo "  -c    if backup larger than this amount of bytes report a critical error"
+  echo "  -w    if backup larger than this amount of bytes report a warning"
+  echo "  -C    if backup consist of more than this amount of files report a critical error"
+  echo "  -W    if backup consist of more than this amount of files report a warning"
+  echo " "
+  echo "Example"
+  echo "./check_size -r /home/backup/report -c 200000000000 -w 100000000000"
   exit 3;
+fi;
 
-  print "what to do";
+if [ ! -f "$REPORT" ] && [ ! -r "$REPORT" ] ; then
+  echo "$REPORT does not exist or is not readable by this user $USER" ;
   exit 3;
-}
+fi;
 
-my $totalSize = 0;
-my $totalFiles = 0;
-if (open(my $fh, '<:encoding(UTF-8)', $options{r})) {
-  while (my $row = <$fh>) {
-    chomp $row;
-    my @words = split /\t/, $row;
-    $totalSize += $words[1];
-    $totalFiles++;
-  }
-} else {
-  warn "Could not open file '". $options{r} ."'";
-  exit(3);
-}
+FILES=`head -2 $REPORT | tail -n1`
+FILES_HUMAN=`numfmt --to=si $FILES | tr -d '\n'`
 
-my $totalSizeKilo = floor($totalSize/1000);
-my $totalSizeMega = floor($totalSizeKilo/1000);
-my $totalSizeGiga = floor($totalSizeMega/1000);
-my $totalSizeHuman = "";
+SIZE=`head -3 $REPORT | tail -n1`
+SIZE_HUMAN=`numfmt --to=si --suffix=B $SIZE | tr -d '\n'`
 
-if($totalSizeGiga > 10) {
-  $totalSizeHuman = $totalSizeGiga ."GB";
-} elsif($totalSizeMega > 10) {
-  $totalSizeHuman = $totalSizeMega ."MB";
-} else {
-  $totalSizeHuman = $totalSizeKilo ."KB";
-}
+echo "backup is $SIZE_HUMAN with $FILES_HUMAN files | HOURS=${SIZE};${WARNING};${CRITICAL} FILES=${FILES};${WARNINGFILES};${CRITICALFILES};";
 
-print "backup is $totalSizeHuman with $totalFiles files\n";
-if($totalSize > $options{"c"}) {
-  exit(2);
-} elsif($totalSize > $options{"w"}) {
-  exit(1);
-}
+if [ $SIZE -ge $CRITICAL ] || [ $FILES -ge $CRITICALFILES ] ; then
+  exit 2;
+elif [ $SIZE -ge $WARNING ] || [ $FILES -ge $WARNINGFILES ]; then
+  exit 1;
+else
+  exit 0;
+fi;

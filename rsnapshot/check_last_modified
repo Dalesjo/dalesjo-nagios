@@ -28,6 +28,11 @@ if [ -z $REPORT ] ; then
   exit 3;
 fi;
 
+if [ ! -f "$REPORT" ] && [ ! -r "$REPORT" ] ; then
+  echo "$REPORT does not exist or is not readable by this user $USER" ;
+  exit 3;
+fi;
+
 LINE=`head -1 $REPORT`
 DATE=`echo $LINE | awk '{print $1}' | cut -d "." -f 1`
 SIZE=`echo $LINE | awk '{print $2}'`

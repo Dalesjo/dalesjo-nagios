@@ -32,4 +32,12 @@ if ! hash sort 2>/dev/null; then
   exit 3;
 fi
 
-find $DIRECTORY -type f -printf "%T@\t%s\t%n\t%P\n" | sort -nr > $REPORT
+find $DIRECTORY -type f -printf "%T@\t%s\t%n\t%P\n" | sort -nr > $REPORT.tmp
+
+FILES=`cat $REPORT.tmp | wc -l`;
+SIZE=`du -sb $DIRECTORY | cut -f1`;
+
+head -1 $REPORT.tmp > $REPORT;
+echo $FILES >> $REPORT;
+echo $SIZE >> $REPORT;
+rm $REPORT.tmp;
