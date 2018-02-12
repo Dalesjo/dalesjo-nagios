@@ -1,0 +1,63 @@
+#!/bin/bash
+
+#Defaults
+CRITICAL=100
+WARNING=50
+
+CRITICALFAILS=200
+WARNINGFAILS=100
+
+while getopts 'c:w:j:C:W:' flag; do
+  case "${flag}" in
+    c) CRITICAL="${OPTARG}" ;;
+    w) WARNING="${OPTARG}" ;;
+    C) CRITICALFAILS="${OPTARG}" ;;
+    W) WARNINGFAILS="${OPTARG}" ;;
+    j) JAIL="${OPTARG}" ;;
+  esac
+done
+
+if [ -z $JAIL ] ; then
+  echo "check_jail [OPTIONS...]"
+  echo "";
+  echo "Check how many banned IP-numbers your selected JAIL has. returns warning or critical if exceeding set values."
+  echo "";
+  echo "Flags:";
+  echo "  -c    value that critical is return, default: 100"
+  echo "  -w    value that warning is return, default: 50"
+  echo "  -C    value of failed attempts that critical is return, default: 200"
+  echo "  -W    value of failed attempts that warning is return, default: 100"
+  echo "  -j    name of fail2ban jail."
+  echo ""
+  echo "Exitcodes:"
+  echo "  0     Jail is healty";
+  echo "  1     Jail has more than -w IP-numbers blocked or more than -W fails";
+  echo "  2     Jail has more than -c IP-numbers blocked or more than -C fails ";
+  echo ""
+  echo "Example"
+  echo "./check_jail -w 100 -c 200 -W 200 -C 400 -j sshd"
+  exit 3;
+fi;
+
+if ! hash fail2ban-client 2>/dev/null; then
+  echo "fail2ban is required, please install, for centos 7 run 'yum install fail2ban -y'"
+  exit 3;
+fi
+
+OUTPUT=`sudo fail2ban-client status $JAIL`
+BANNED=`echo "$OUTPUT" | grep "Currently banned" | awk '{print $NF}' | tr -d '\n'`
+FAILED=`echo "$OUTPUT" | grep "Currently failed" | awk '{print $NF}' | tr -d '\n'`
+
+if [ -z $BANNED ] || [ -z $FAILED ]; then
+  echo "Could not read output $OUTPUT";
+  exit 3;
+fi;
+
+echo "Currently Banned: $BANNED / Failed: $FAILED | BANNED=${BANNED};${WARNING};${CRITICAL} FAILED=${FAILED};${WARNINGFAILS};${CRITICALFAILS};";
+if [ $BANNED -ge $CRITICAL ] || [ $FAILED -ge $CRITICALFAILS ]; then
+  exit 2;
+elif [ $BANNED -ge $WARNING ] || [ $FAILED -ge $WARNINGFAILS ]; then
+  exit 1;
+else
+  exit 0;
+fi;
