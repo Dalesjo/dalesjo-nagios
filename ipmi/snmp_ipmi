@@ -1,0 +1,29 @@
+#!/bin/bash
+
+while getopts 'f:u:' flag; do
+  case "${flag}" in
+    f) TMPFILE="${OPTARG}" ;;
+    u) UNITNAME="${OPTARG}" ;;
+  esac
+done
+
+if [ -z "$TMPFILE" ] || [ -z "$UNITNAME" ]; then
+  echo "snmp_ipmi [OPTIONS...]"
+  echo "";
+  echo "returns single value from ipmitool sensor list"
+  echo "";
+  echo "Flags:";
+  echo "  -f    tmp file with the content of ipmitool sensor list output"
+  echo "  -u    name of sensor you want to check."
+  echo ""
+  echo "Example:"
+  echo "snmp_ipmi -f /tmp/ipmi_sensor_list -u \"System Fan 1\""
+  echo ""
+  echo "Example snmpd.conf"
+  echo "extend "System Fan 1" /usr/lib64/nagios/plugins/custom/ipmi/snmp_ipmi -f /tmp/ipmi_sensor_list -u "System Fan 1""
+  echo "extend "System Fan 3" /usr/lib64/nagios/plugins/custom/ipmi/snmp_ipmi -f /tmp/ipmi_sensor_list -u "System Fan 3""
+  echo "extend "System Fan 4" /usr/lib64/nagios/plugins/custom/ipmi/snmp_ipmi -f /tmp/ipmi_sensor_list -u "System Fan 4""
+  exit 3;
+fi;
+
+cat "${TMPFILE}" | grep "${UNITNAME}" | cut -s -d "|" -f 2 | tr -d '[:space:]';
