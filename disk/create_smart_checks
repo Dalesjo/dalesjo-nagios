@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# INFO
+# This script creates a scron script that runs a short test all disks
+# each week and sets up a nagios test for each drive.
+# Run every time you change your harddrives.
+
 CONF="/etc/nrpe.d/disk.cfg"
 CRON="/etc/cron.d/disk"
 
