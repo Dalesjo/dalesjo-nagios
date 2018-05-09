@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# Defaults
+CRITICAL=2
+WARNING=1
+
+while getopts 'hc:w:' flag; do
+  case "${flag}" in
+    c) CRITICAL="${OPTARG}" ;;
+    w) WARNING="${OPTARG}" ;;
+    h) HELP=1 ;;
+  esac
+done
+
+if [ $HELP ] ; then
+  echo "check_all_disks [OPTIONS...]"
+  echo "";
+  echo "Checks S.M.A.R.T values on all installed drives in the system"
+  echo "";
+  echo "Flags:";
+  echo "  -h    This help page"
+  echo "  -c    Returns a Critical error if more than this many drives are broken Default:2"
+  echo "  -w    Returns a warning if more than this many drives are broken Default:1"
+  echo " "
+  echo " "
+  echo "Example"
+  echo "./check_all_disks -c 2 -w 1"
+  exit 3;
+fi;
+
+DRIVES=`lsblk --nodeps -n -o name`
+TOTAL=0
+OK=0
+FAILED=0
+for DRIVE in $DRIVES; do
+  /usr/lib64/nagios/plugins/check_ide_smart -d /dev/$DRIVE -q
+  RESULT=$?
+  TOTAL=$((TOTAL + 1))
+
+  if [ "$RESULT" -eq "0" ]; then
+    OK=$((OK + 1))
+  else
+    FAILED=$((FAILED + 1))
+  fi;
+done
+
+echo "${OK}/${TOTAL} DISKS ARE OK | TOTAL=${TOTAL} | OK=${OK} | FAILED=${FAILED}";
+
+if [ $FAILED -ge $CRITICAL ]; then
+  exit 2;
+elif [ $FAILED -ge $WARNING ]; then
+  exit 1;
+else
+  exit 0;
+fi;
