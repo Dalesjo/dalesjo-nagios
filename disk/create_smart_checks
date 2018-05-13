@@ -41,7 +41,7 @@ for DRIVE in $DRIVES; do
   echo "command[disk_smart_$ID]=$TEST" >> $CONF
   echo "  10 5  *  *  $W        root            chronic smartctl -t short /dev/disk/by-id/$ID" >> $CRON
 
-  echo "Disk: $ID"
+  echo "DISK - $ID"
   echo "disk_smart_$ID"
   echo ""
 

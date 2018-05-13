@@ -4,12 +4,15 @@ critical=200
 warning=100
 hours=24
 
-while getopts 'w:c:d:h' flag; do
+while getopts 'w:c:d:hril' flag; do
   case "${flag}" in
     c) critical="${OPTARG}" ;;
     w) warning="${OPTARG}" ;;
     d) hours="${OPTARG}" ;;
     h) help='true' ;;
+    r) ignoreRoot=1;;
+    i) ignoreInvalid=1;;
+    l) list=1;;
   esac
 done
 
@@ -21,8 +24,11 @@ if [ "$help" == "true" ]; then
 	echo "Flags:";
 	echo "  -c    How many failed logins that has to be reached before returning critical"
 	echo "  -w    How many failed logins that has to be reached before returning warning"
+  echo "  -r    Ignore login attempts as root"
+  echo "  -l    List login attempts"
+  echo "  -i    Ignore attempts at invalid usernames"
 	echo "  -d    How many hours back in time we want to check."
-	echo "  -h    Show thius help text.";
+	echo "  -h    Show this help text.";
 	echo "";
 	echo "Example:";
 	echo "check_failedlogins -c 200 -w 100 -d 24"
@@ -30,7 +36,21 @@ if [ "$help" == "true" ]; then
 fi;
 
 if journalctl --version >/dev/null 2>&1; then
-	failed=$(sudo journalctl -q --since "${hours} hours ago" | grep -i "sshd" |grep -i "Failed password" | wc -l)
+  logins=$(sudo journalctl -q --since "${hours} hours ago" | grep -i "sshd" | grep -i "Failed password")
+
+  if [ $ignoreInvalid ] ; then
+    logins=$(echo "${logins}" | grep -v "invalid")
+  fi;
+
+  if [ $ignoreRoot ] ; then
+    logins=$(echo "${logins}" | grep -v "root")
+  fi;
+
+  if [ $list ] ; then
+    echo "${logins}"
+  fi;
+
+  failed=$(echo "${logins}" | wc -l)
 else
 	echo "journalctl is not installed."
 	exit 3;
@@ -42,7 +62,7 @@ if [ "$failed" -gt "$critical" ]; then
 fi;
 
 if [ "$failed" -gt "$warning" ]; then
-	echo "Warning - ${failed} failed logins in the last ${hours} hours | failed_sshd_logins=${failed};${warning};${critical}";	
+	echo "Warning - ${failed} failed logins in the last ${hours} hours | failed_sshd_logins=${failed};${warning};${critical}";
 	exit 1
 fi;
 
