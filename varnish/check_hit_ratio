@@ -8,7 +8,7 @@ while getopts 'c:d:w:s' flag; do
   case "${flag}" in
     c) CRITICAL="${OPTARG}" ;;
     d) DIRECTORY="${OPTARG}" ;;
-    w) WARNING=="${OPTARG}" ;;
+    w) WARNING="${OPTARG}" ;;
     s) STATS=1;;
   esac
 done
