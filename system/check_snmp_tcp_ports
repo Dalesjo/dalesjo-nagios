@@ -1,0 +1,88 @@
+#!/bin/bash
+
+AUTHPROTOCOL="SHA";
+PRIVPROTOCOL="AES";
+SECLEVEL="authPriv";
+
+CRITICAL=100
+WARNING=80
+
+while getopts 'A:a:l:h:u:X:x:vw:c:' flag; do
+  case "${flag}" in
+
+    A) AUTHPASSWORD="${OPTARG}" ;;
+    a) AUTHPROTOCOL="${OPTARG}" ;;
+    l) SECLEVEL="${OPTARG}" ;;
+    h) HOST="${OPTARG}" ;;
+    u) USERNAME="${OPTARG}" ;;
+    X) PRIVPASSWORD="${OPTARG}" ;;
+    x) PRIVPROTOCOL="${OPTARG}" ;;
+
+    v) VERBOSE=1;;
+    c) CRITICAL="${OPTARG}" ;;
+    w) WARNING="${OPTARG}" ;;
+  esac
+done
+
+if [ -z $USERNAME ] || [ -z $AUTHPASSWORD ] || [ -z $PRIVPASSWORD ] || [ -z $HOST ] ; then
+	echo "check_snmp_tcp_ports [OPTIONS...]"
+	echo "";
+	echo "nagios test over snmpV3. Test the amount of open TCP ports on host."
+	echo "";
+	echo "Flags:";
+  echo "  -A    Set the authentication pass phrase used for authenticated SNMPv3 messages."
+  echo "  -a    Set the authentication protocol (MD5 or SHA). Default: SHA"
+  echo "  -h    IP-Number or hostname"
+  echo "  -l    Set the securityLevel used for SNMPv3 messages (noAuthNoPriv|authNoPriv|authPriv) Default: authPriv"
+  echo "  -u    Set the securityName used for authenticated SNMPv3 messages."
+  echo "  -X    Set the privacy pass phrase used for encrypted SNMPv3 messages"
+  echo "  -x    Set the privacy protocol (DES or AES). Default: AES"
+	echo "";
+  echo "  -w    Warn if total amount of ports exceeds this number. Default: 80"
+  echo "  -c    Critical if total amount of ports exceeds this number. Default: 100"
+  echo "";
+	echo "Example:";
+	echo "./check_snmp_tcp_ports -A encrypted -X privat -h localhost -u username -c 80 -w 100"
+	exit 0;
+fi;
+
+if ! hash snmpwalk 2>/dev/null; then
+  echo "snmpwalk is required, please install, for centos 7 run 'yum install net-snmp-utils -y'"
+  exit 3;
+fi
+
+LIST=`snmpwalk -u ${USERNAME} -A ${AUTHPASSWORD} -a ${AUTHPROTOCOL} -X ${PRIVPASSWORD} -x ${PRIVPROTOCOL} -l ${SECLEVEL} -v3 ${HOST} TCP-MIB::tcpConnectionState`
+
+total=`echo "${LIST}" | wc -l`
+closed=`echo "${LIST}" | grep 'closed(1)' | wc -l`
+listen=`echo "${LIST}" | grep 'listen(2)' | wc -l`
+synSent=`echo "${LIST}" | grep 'synSent(2)' | wc -l`
+synReceived=`echo "${LIST}" | grep 'synReceived(3)' | wc -l`
+established=`echo "${LIST}" | grep 'established(5)' | wc -l`
+finWait1=`echo "${LIST}" | grep 'finWait1(6)' | wc -l`
+finWait2=`echo "${LIST}" | grep 'finWait2(7)' | wc -l`
+closeWait=`echo "${LIST}" | grep 'closeWait(8)' | wc -l`
+lastAck=`echo "${LIST}" | grep 'lastAck(9)' | wc -l`
+closing=`echo "${LIST}" | grep 'closing(10)' | wc -l`
+timeWait=`echo "${LIST}" | grep 'timeWait(11)' | wc -l`
+deleteTCB=`echo "${LIST}" | grep 'deleteTCB(12)' | wc -l`
+closed=`echo "${LIST}" | grep 'closed(1)' | wc -l`
+
+if [ $HELP ] ; then
+  echo "${LIST}"
+  echo "-------------------------------------------------------------------------"
+fi;
+
+if [ "$total" -gt "$CRITICAL" ]; then
+	echo -n "Critical - ${total} ports open";
+	STATUS=2
+elif [ "$total" -gt "$WARNING" ]; then
+	echo -n "Warning - ${total} ports open";
+	STATUS=1
+else
+  echo -n "OK - ${total} ports open";
+  STATUS=0
+fi;
+
+echo " | total=${total};${WARNING};${CRITICAL} closed=${closed} listen=${listen} synSent=${synSent} synReceived=${synReceived} established=${established} finWait1=${finWait1} finWait2=${finWait2} closeWait=${closeWait} lastAck=${lastAck} closing=${closing} timeWait=${timeWait} deleteTCB=${deleteTCB} closed=${closed}"
+exit $STATUS;
