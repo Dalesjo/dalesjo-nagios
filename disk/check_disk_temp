@@ -1,0 +1,48 @@
+#!/bin/bash
+
+CRITICAL=55
+WARNING=45
+
+while getopts 'hc:w' flag; do
+  case "${flag}" in
+    c) CRITICAL="${OPTARG}" ;;
+    w) WARNING=="${OPTARG}" ;;
+    s) STATS=1;;
+    h) HELP=1;;
+  esac
+done
+
+if [ $HELP ] ; then
+  echo "check_disk_temp [OPTIONS...]"
+  echo "";
+  echo "Checks disk temperature on all installed harddrives using hddtemp"
+  echo "";
+  echo "Flags:";
+  echo "  -h    This help page"
+  echo "  -c    Returns a Critical error if temperature exceeds this value. Default:55"
+  echo "  -w    Returns a Warning if temperature exceeds this value. Default:45"
+  echo "  -s    Return statistics"
+  echo " "
+  echo " "
+  echo "Example"
+  echo "./check_disk_temp -c 55 -w 45 -s"
+  exit 3;
+fi;
+
+if ! hash nc 2>/dev/null; then
+  echo "nc needs to be installed"
+  exit 3;
+fi
+
+nc 127.0.0.1 7634 |sed 's/|//m' | sed 's/||/ \n/g' | awk -F'|' '{print $1 ";" $3}'
+exit 3;
+
+DRIVES=`nc 127.0.0.1 7634 |sed 's/|//m' | sed 's/||/ \n/g' | awk -F'|' '{print $1 ";" $3}'`
+
+echo "$DRIVES"
+echo "----------------------"
+for DRIVE in $DRIVES; do
+  IFS=';' read PATH TEMPERATURE <<< "$DRIVE"
+  echo $PATH
+  echo $TEMPERATURE
+done
