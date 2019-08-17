@@ -36,7 +36,7 @@ if [ "$help" == "true" ]; then
 fi;
 
 if journalctl --version >/dev/null 2>&1; then
-  logins=$(sudo journalctl -q --since "${hours} hours ago" | grep -i "sshd" | grep -i "Failed password")
+  logins=$(sudo journalctl -q -t "sshd" --since "${hours} hours ago" | grep -i "sshd" | grep -i "Failed password")
 
   if [ $ignoreInvalid ] ; then
     logins=$(echo "${logins}" | grep -v "invalid")
