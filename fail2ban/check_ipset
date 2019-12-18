@@ -51,7 +51,7 @@ MINIMUMWARNING=$((BANNED-WARNING))
 MAXIMUMCRITICAL=$((BANNED+CRITICAL))
 MAXIMUMWARNING=$((BANNED+WARNING))
 
-OUTPUT=`sudo ipset list fail2ban-$JAIL`;
+OUTPUT=`sudo ipset list f2b-$JAIL`;
 MEMBERS=`echo "$OUTPUT" | tail -n +8 | wc -l`;
 
 if [ -z $MEMBERS ] ; then
