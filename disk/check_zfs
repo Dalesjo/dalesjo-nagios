@@ -24,19 +24,21 @@ if [ $HELP ] || [ -z "$POOL" ]; then
   exit 3;
 fi;
 
-if ! hash zpool 2>/dev/null; then
+if ! hash /usr/sbin/zpool 2>/dev/null; then
   echo "zpool needs to be installed"
   exit 3;
 fi
 
 # run the command once. might need to be added to sudoers.
 # include error messages into data.
-DATA=$(zpool status $POOL 2>&1);
+#OUTPUT=`sudo zpool status zfs-pool-1 2>&1`
+
+OUTPUT=$(/usr/sbin/zpool status zfs-pool-1);
 RESULT=$?
 
 # output zfs status output to console.
 echo "----"
-echo "$DATA"
+echo "$OUTPUT"
 echo "----"
 
 # Verify that this was a valid pool
@@ -46,14 +48,14 @@ if [ "$RESULT" -ne "0" ]; then
 fi;
 
 # Verify if pools is degraded
-CONDITION=$(echo "$DATA" | egrep -i '(DEGRADED|FAULTED|OFFLINE|UNAVAIL|REMOVED|FAIL|DESTROYED|corrupt|cannot|unrecover)')
+CONDITION=$(echo "$OUTPUT" | egrep -i '(DEGRADED|FAULTED|OFFLINE|UNAVAIL|REMOVED|FAIL|DESTROYED|corrupt|cannot|unrecover)')
 if [ "${CONDITION}" ]; then
     echo "ZFS pool is degredad somehow."
     exit 2;
 fi
 
 # Check for any READ,WRITE,CKSUM issues
-ERRORS=$(echo "$DATA" | grep ONLINE | grep -v state | awk '{print $3 $4 $5}' | grep -v 000)
+ERRORS=$(echo "$OUTPUT" | grep ONLINE | grep -v state | awk '{print $3 $4 $5}' | grep -v 000)
 if [ "${ERRORS}" ]; then
     echo "ZFS pool has problems that needs to be verified."
     exit 1;
