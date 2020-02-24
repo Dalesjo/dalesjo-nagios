@@ -3,10 +3,11 @@
 # Test ZFS pools for errors using thr zpool command
 # inspired by https://calomel.org/zfs_health_check_script.html
 
-while getopts 'hp:' flag; do
+while getopts 'hsp:' flag; do
   case "${flag}" in
     p) POOL="${OPTARG}" ;;
     h) HELP=1;;
+    s) SUDO=1;;
   esac
 done
 
@@ -14,52 +15,53 @@ if [ $HELP ] || [ -z "$POOL" ]; then
   echo "check_zfs [OPTIONS...]"
   echo "";
   echo "Checks zfs pools for any errors."
+  echo "Debian needs to run as sudo. add the following to sudoers"
+  echo "";
   echo "";
   echo "Flags:";
   echo "  -p    name of the pool to check"
-  echo " "
+  echo "  -s    Run as sudo"
   echo " "
   echo "Example"
   echo "./check_zfs -p zfs-pool-1"
   exit 3;
 fi;
 
-if ! hash /usr/sbin/zpool 2>/dev/null; then
+if ! hash zpool 2>/dev/null; then
   echo "zpool needs to be installed"
   exit 3;
 fi
 
 # run the command once. might need to be added to sudoers.
 # include error messages into data.
-#OUTPUT=`sudo zpool status zfs-pool-1 2>&1`
-
-OUTPUT=$(/usr/sbin/zpool status zfs-pool-1);
+if [ $SUDO ]; then
+    OUTPUT=$(sudo zpool status $POOL 2>&1);
+else
+    OUTPUT=$(zpool status $POOL 2>&1);
+fi;  
 RESULT=$?
 
 # output zfs status output to console.
-echo "----"
-echo "$OUTPUT"
-echo "----"
+echo "$OUTPUT" | sed '1q;d' | awk '{$1=$1};1'
+echo "$OUTPUT" | sed '2q;d' | awk '{$1=$1};1'
+echo "$OUTPUT" | sed '3q;d' | awk '{$1=$1};1'
+echo "$OUTPUT" | tail -1 | awk '{$1=$1};1'
 
 # Verify that this was a valid pool
 if [ "$RESULT" -ne "0" ]; then
-    echo "ZFS Pool is missing"
     exit 2;
 fi;
 
 # Verify if pools is degraded
 CONDITION=$(echo "$OUTPUT" | egrep -i '(DEGRADED|FAULTED|OFFLINE|UNAVAIL|REMOVED|FAIL|DESTROYED|corrupt|cannot|unrecover)')
 if [ "${CONDITION}" ]; then
-    echo "ZFS pool is degredad somehow."
     exit 2;
 fi
 
 # Check for any READ,WRITE,CKSUM issues
 ERRORS=$(echo "$OUTPUT" | grep ONLINE | grep -v state | awk '{print $3 $4 $5}' | grep -v 000)
 if [ "${ERRORS}" ]; then
-    echo "ZFS pool has problems that needs to be verified."
     exit 1;
 fi
 
-echo "OK found no issues"
 exit 0;
