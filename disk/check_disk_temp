@@ -2,11 +2,12 @@
 
 CRITICAL=55
 WARNING=45
+STATS=0;
 
-while getopts 'hc:w' flag; do
+while getopts 'hsc:w:' flag; do
   case "${flag}" in
     c) CRITICAL="${OPTARG}" ;;
-    w) WARNING=="${OPTARG}" ;;
+    w) WARNING="${OPTARG}" ;;
     s) STATS=1;;
     h) HELP=1;;
   esac
@@ -34,15 +35,55 @@ if ! hash nc 2>/dev/null; then
   exit 3;
 fi
 
-nc 127.0.0.1 7634 |sed 's/|//m' | sed 's/||/ \n/g' | awk -F'|' '{print $1 ";" $3}'
-exit 3;
+#nc 127.0.0.1 7634 |sed 's/|//m' | sed 's/||/ \n/g' | awk -F'|' '{print $1 ";" $3}'
+#exit 3;
 
-DRIVES=`nc 127.0.0.1 7634 |sed 's/|//m' | sed 's/||/ \n/g' | awk -F'|' '{print $1 ";" $3}'`
+DRIVES=`nc 127.0.0.1 7634  < /dev/null |sed 's/|//m' | sed 's/||/ \n/g' | awk -F'|' '{print $1 ";" $3}'`
 
-echo "$DRIVES"
-echo "----------------------"
+UNKNOWN=0;
+HOT=0;
+WARM=0;
+OK=0
+TOTAL=0;
+SUM=0;
+
 for DRIVE in $DRIVES; do
   IFS=';' read PATH TEMPERATURE <<< "$DRIVE"
-  echo $PATH
-  echo $TEMPERATURE
+  
+  if [ "$TEMPERATURE" = "UNK" ]; then
+    UNKNOWN=$(( $UNKNOWN + 1 ))
+    continue;
+  fi;
+
+  TOTAL=$(( $TOTAL + 1 ));
+  SUM=$(( $SUM + $TEMPERATURE ));
+
+  if [ "$TEMPERATURE" -gt "$CRITICAL" ]; then
+    HOT=$(( $HOT + 1 ));
+  elif [ "$TEMPERATURE" -gt "$WARNING" ]; then
+    WARM=$(( $WARM + 1 ));
+  else
+    OK=$(( $OK + 1 ));
+  fi;
 done
+
+  AVERAGE=$(($SUM / $TOTAL))
+    
+  if [ "$HOT" -gt "0" ]; then
+    echo -n "Overheating average temperature is ${AVERAGE}C";
+    EXIT=2
+  elif [ "$WARM" -gt "0" ]; then
+    echo -n "To warm average temperature is ${AVERAGE}C";
+    EXIT=1;
+  else
+    echo -n "OK average temperature is ${AVERAGE}C";
+    EXIT=0;
+  fi;
+
+  if [ "$STATS" -gt "0" ]; then
+    echo " | HOT=${HOT} WARM=${WARM} OK=${OK} UNKNOWN=${UNKNOWN} TOTAL=${TOTAL}";
+  else
+    echo "";
+  fi;
+
+  exit $EXIT;
