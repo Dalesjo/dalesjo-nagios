@@ -1,0 +1,63 @@
+#!/bin/bash
+
+while getopts 'd:h' flag; do
+  case "${flag}" in
+    d) DOMAIN="${OPTARG}" ;;
+    h) HELP=1 ;;
+  esac
+done
+
+if [ $HELP ] || [ -z $DOMAIN ] ; then
+  echo "check_zonemaster [OPTIONS...]"
+  echo "";
+  echo "uses zonemaster to verify that your domain is correctly setup."
+  echo "";
+  echo "Flags:";
+  echo "  -h    This help page"
+  echo "  -d    The domain that should be verified"
+  echo " "
+  echo " "
+  echo "Example"
+  echo "./check_zonemaster -d example.com"
+  exit 3;
+fi;
+
+if ! hash zonemaster-cli  2>/dev/null; then
+  echo "zonemaster-cli  needs to be installed"
+  echo "";
+  echo "Howto"
+  echo "-----";
+  echo "sudo yum --enablerepo=extras install epel-release -y";
+  echo 'sudo yum groupinstall "Development Tools" -y && sudo yum install cpanminus libidn-devel openssl-devel perl-Clone perl-core perl-Devel-CheckLib perl-File-ShareDir perl-File-Slurp perl-IO-Socket-INET6 perl-JSON-PP perl-List-MoreUtils perl-Module-Find perl-Moose perl-Net-IP perl-Pod-Coverage perl-Readonly-XS perl-Test-Differences perl-Test-Exception perl-Test-Fatal perl-Test-Pod perl-YAML -y';
+  echo "sudo cpanm Locale::Msgfmt Locale::TextDomain Mail::RFC822::Address Module::Install Module::Install::XSUtil Test::More Text::CSV && sudo cpanm Zonemaster::LDNS Zonemaster::Engine";
+  echo "sudo cpanm Zonemaster::CLI";
+  exit 3;
+fi
+
+ISSUES=`zonemaster-cli ${DOMAIN}`;
+WARNING=0;
+CRITICAL=0;
+
+IFS=$'\n' 
+for ISSUE in ${ISSUES}
+do
+  LEVEL=`echo ${ISSUE} | awk '{print $2}' | awk '{$1=$1;print}'`;
+  MESSAGE=`echo ${ISSUE} | awk '{$1=$2=""; print $0}' | awk '{$1=$1;print}'`;
+  
+  if [ "$LEVEL" = "CRITICAL" ] || [ "$LEVEL" = "ERROR" ]; then
+    CRITICAL=$(( $CRITICAL + 1 ));
+    echo "${MESSAGE}";
+  elif [ "$LEVEL" = "WARNING" ]; then
+    WARNING=$(( $WARNING + 1 ));
+    echo "${MESSAGE}";
+  fi;
+done
+
+if [ "$CRITICAL" -gt "0" ]; then
+  exit 2;
+elif [ "$WARNING" -gt "0" ]; then
+  exit 1;
+fi;
+
+echo "No issues found for domain ${DOMAIN}"
+exit 0;
