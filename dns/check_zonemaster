@@ -1,7 +1,13 @@
 #!/bin/bash
 
-while getopts 'd:h' flag; do
+
+CRITICAL=0;
+WARNING=0;
+
+while getopts 'd:hc:w:' flag; do
   case "${flag}" in
+    c) CRITICAL="${OPTARG}" ;;
+    w) WARNING="${OPTARG}" ;;
     d) DOMAIN="${OPTARG}" ;;
     h) HELP=1 ;;
   esac
@@ -13,12 +19,14 @@ if [ $HELP ] || [ -z $DOMAIN ] ; then
   echo "uses zonemaster to verify that your domain is correctly setup."
   echo "";
   echo "Flags:";
+  echo "  -w    ignore issue if it less than x warnings (default:0)"
+  echo "  -c    ignore issue if it less than x errors or critical (default:0)"
   echo "  -h    This help page"
   echo "  -d    The domain that should be verified"
   echo " "
   echo " "
   echo "Example"
-  echo "./check_zonemaster -d example.com"
+  echo "./check_zonemaster -d example.com -c 0 -w 0"
   exit 3;
 fi;
 
@@ -35,8 +43,8 @@ if ! hash zonemaster-cli  2>/dev/null; then
 fi
 
 ISSUES=`zonemaster-cli ${DOMAIN}`;
-WARNING=0;
-CRITICAL=0;
+WARNINGCOUNT=0;
+CRITICALCOUNT=0;
 
 IFS=$'\n' 
 for ISSUE in ${ISSUES}
@@ -45,17 +53,17 @@ do
   MESSAGE=`echo ${ISSUE} | awk '{$1=$2=""; print $0}' | awk '{$1=$1;print}'`;
   
   if [ "$LEVEL" = "CRITICAL" ] || [ "$LEVEL" = "ERROR" ]; then
-    CRITICAL=$(( $CRITICAL + 1 ));
+    CRITICALCOUNT=$(( $CRITICALCOUNT + 1 ));
     echo "${MESSAGE}";
   elif [ "$LEVEL" = "WARNING" ]; then
-    WARNING=$(( $WARNING + 1 ));
+    WARNINGCOUNT=$(( $WARNINGCOUNT + 1 ));
     echo "${MESSAGE}";
   fi;
 done
 
-if [ "$CRITICAL" -gt "0" ]; then
+if [ "$CRITICALCOUNT" -gt "$CRITICAL" ]; then
   exit 2;
-elif [ "$WARNING" -gt "0" ]; then
+elif [ "$WARNINGCOUNT" -gt "$WARNING" ]; then
   exit 1;
 fi;
 
