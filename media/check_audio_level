@@ -1,0 +1,83 @@
+#!/bin/bash
+
+TIMEOUT=10
+FFMPEG="ffmpeg"
+
+while getopts 'hc:w:i:t:f:ds' flag; do
+  case "${flag}" in
+    c) CRITICAL="${OPTARG}" ;;
+    w) WARNING="${OPTARG}" ;;
+    h) HELP=1 ;;
+    i) INPUT="${OPTARG}" ;;
+    t) TIMEOUT="${OPTARG}" ;;
+    f) FFMPEG="${OPTARG}" ;;
+    d) DATA=1;;
+    s) STATS=1;;
+  esac
+done
+
+if [ $HELP ] || [ -z $INPUT ] || [ -z $CRITICAL ] || [ -z $WARNING ] ; then
+  echo "check_audio_level"
+  echo "";
+  echo "Checks audio level on any ffmpleg playable stream."
+  echo "";
+  echo "Flags:";
+  echo "  -h    This help page"
+  echo "  -c    Returns a Critical error if audio level is below this value."
+  echo "  -w    Returns a warning if audio level is below this value."
+  echo "  -i    input file or stream you want ffmpeg to analyze"
+  echo "  -t    How many seconds of the file you want to be analyzed, default:10"
+  echo "  -f    path to ffmpeg, default: ffmpeg"
+  echo "  -d    debug output data from ffmpeg"
+  echo "  -s    output stats for icinga/nagios"
+  echo ""
+  echo "Example"
+  echo "./check_audio_level -i http://lyssna.fnf.nu:8080/fnf.mp3 -t 10"
+  exit 3;
+fi;
+
+OUTPUT=`${FFMPEG} -t ${TIMEOUT} -i "${INPUT}" -af "volumedetect" -f null /dev/null 2>&1`;
+OUTPUT=`echo "${OUTPUT}" | grep "Parsed_volumedetect_"`
+VOLUME=` echo "${OUTPUT}" | grep -o "mean_volume.*" | cut -d ':' -f2 | sed -e 's/^[[:space:]]*//' | cut -d '.' -f1`
+
+
+report () {
+
+  if [ -n "$DATA" ]; then
+    echo "-------------- DATA -----------------";
+    echo "$OUTPUT" | while read -r LINE ; do
+      echo "${LINE}" | cut -d ']' -f2 | sed -e 's/^[[:space:]]*//'
+    done
+  fi
+}
+
+stats () {
+  if [ -n "$STATS" ]; then
+   echo " | VOLUME=${VOLUME}"
+  fi
+}
+
+if [ "${VOLUME}" -lt "${CRITICAL}" ]; then
+  echo "Volume is below critical value ${CRITICAL} db";
+  report;
+  stats;
+  exit 2;
+else
+  echo "Volume is above critical value  ${CRITICAL} db"
+fi
+
+if [ "${VOLUME}" -lt "${WARNING}" ]; then
+  echo "Volume is below warning value ${WARNING} db";
+  report;
+  stats;
+  exit 1;
+else
+  echo "Volume is above warning value ${CRITICAL} db"
+fi
+
+echo "Volume is ok"
+report;
+stats;
+exit 0;
+
+    
