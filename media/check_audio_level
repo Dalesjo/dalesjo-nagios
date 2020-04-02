@@ -37,9 +37,15 @@ if [ $HELP ] || [ -z $INPUT ] || [ -z $CRITICAL ] || [ -z $WARNING ] ; then
 fi;
 
 OUTPUT=`${FFMPEG} -t ${TIMEOUT} -i "${INPUT}" -af "volumedetect" -f null /dev/null 2>&1`;
+FFMPEGEXIT=$?
+
+if [ "${FFMPEGEXIT}" -gt "0" ]; then
+  echo "FFMPEG could not play ${INPUT}";
+  exit 3;
+fi
+
 OUTPUT=`echo "${OUTPUT}" | grep "Parsed_volumedetect_"`
 VOLUME=` echo "${OUTPUT}" | grep -o "mean_volume.*" | cut -d ':' -f2 | sed -e 's/^[[:space:]]*//' | cut -d '.' -f1`
-
 
 report () {
 
@@ -53,7 +59,7 @@ report () {
 
 stats () {
   if [ -n "$STATS" ]; then
-   echo " | VOLUME=${VOLUME}"
+   echo " | VOLUME=${VOLUME}";
   fi
 }
 
@@ -62,8 +68,6 @@ if [ "${VOLUME}" -lt "${CRITICAL}" ]; then
   report;
   stats;
   exit 2;
-else
-  echo "Volume is above critical value  ${CRITICAL} db"
 fi
 
 if [ "${VOLUME}" -lt "${WARNING}" ]; then
@@ -71,11 +75,9 @@ if [ "${VOLUME}" -lt "${WARNING}" ]; then
   report;
   stats;
   exit 1;
-else
-  echo "Volume is above warning value ${CRITICAL} db"
 fi
 
-echo "Volume is ok"
+echo "Volume is ok";
 report;
 stats;
 exit 0;
