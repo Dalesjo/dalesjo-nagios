@@ -32,7 +32,7 @@ if [ $HELP ] || [ -z $INPUT ] || [ -z $CRITICAL ] || [ -z $WARNING ] ; then
   echo "  -s    output stats for icinga/nagios"
   echo ""
   echo "Example"
-  echo "./check_audio_level -i http://lyssna.fnf.nu:8080/fnf.mp3 -t 10"
+  echo "./check_audio_level -i http://example.com/live.mp3 -t 5 -c -10 -w -10 -d -s -f /home/samuel/bin/ffmpeg"
   exit 3;
 fi;
 
