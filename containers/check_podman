@@ -1,0 +1,31 @@
+#!/usr/bin/python3
+
+import argparse
+import sys
+import json
+import os
+
+# Get arguments
+ap = argparse.ArgumentParser()
+ap.add_argument("-c", "--container", required=True, help="Name or id of container you want to check.")
+ap.add_argument("-m", "--memory", required=True, help="Will output warning if memory limit is above this amount percentage. ex: 70 if you want to warn if memory consumptions exceeds 70%")
+args = vars(ap.parse_args())
+
+# Get data from command
+output = os.popen('sudo podman stats --all --no-stream --format json')
+containers = json.load(output)
+
+for container in containers:
+    if(container["name"] == args["container"] ):
+        memory = container["mem_percent"].strip('%')
+
+        print("Memory usage is "+ memory +"%")
+        if memory < args["memory"] :
+            sys.exit(0)
+        else:
+            sys.exit(1)
+
+        print(memory)
+
+print("Container "+ args["container"] +" is not running")
+sys.exit(2)
