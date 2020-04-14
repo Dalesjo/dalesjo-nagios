@@ -1,4 +1,6 @@
 #!/usr/bin/python3
+# for centos 7 run
+# yum install python3 -y
 
 import argparse
 import sys
