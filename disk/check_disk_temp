@@ -66,7 +66,7 @@ MIN=1000;
 for DRIVE in $DRIVES; do
   IFS=';' read PATH TEMPERATURE <<< "$DRIVE"
   
-  if [ "$TEMPERATURE" = "UNK" ] || [ "$TEMPERATURE" = "NA" ] || [ "$TEMPERATURE" = "SLP" ]; then
+  if [ "$TEMPERATURE" = "UNK" ] || [ "$TEMPERATURE" = "NA" ] || [ "$TEMPERATURE" = "SLP" ] || [ "$TEMPERATURE" = "ERR" ]; then
     UNKNOWN=$(( $UNKNOWN + 1 ))
     continue;
   fi;
