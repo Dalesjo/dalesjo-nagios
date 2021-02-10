@@ -9,7 +9,7 @@ while getopts 'c:w:H:d:p:q:' flag; do
     w) WARNING="${OPTARG}" ;;
     H) HOST="${OPTARG}" ;;
     d) DOMAIN="${OPTARG}" ;;
-    P) URL="${OPTARG}" ;;
+    p) URL="${OPTARG}" ;;
     q) QUERY="${OPTARG}" ;;
   esac
 done
@@ -38,7 +38,7 @@ if [ -z $CRITICAL ] || [ -z $WARNING ] || [ -z $HOST ] || [ -z $DOMAIN ] || [ -z
   exit 3;
 fi;
 
-RESPONSE=$(curl -s "https://${DOMAIN}${URL}" --resolve "${DOMAIN}:443:${HOST}");
+RESPONSE=$(curl -s "https://${DOMAIN}${URL}" --resolve "${DOMAIN}:443:${HOST}" --user-agent "Icinga/check_website_count");
 COUNT=$(echo "${RESPONSE}" | grep -o ${QUERY} | wc -l);
 
 echo "Found ${COUNT} of '${QUERY}' | COUNT=${COUNT}";
