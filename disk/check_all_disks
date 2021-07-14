@@ -28,12 +28,12 @@ if [ $HELP ] ; then
   exit 3;
 fi;
 
-DRIVES=`lsblk --nodeps -n -o name`
+DRIVES=`sudo lshw -class disk | grep "logical name" | cut -d ":" -f2 | awk '{$1=$1};1'`
 TOTAL=0
 OK=0
 FAILED=0
 for DRIVE in $DRIVES; do
-  /usr/lib64/nagios/plugins/check_ide_smart -d /dev/$DRIVE -q
+  sudo /usr/lib64/nagios/plugins/check_ide_smart -q -d $DRIVE 
   RESULT=$?
   TOTAL=$((TOTAL + 1))
 
