@@ -94,7 +94,7 @@ done
   
 
 if [ "$TOTAL" -lt "1" ]; then
-  if [ "$UNKNOWN" -gt "1" ]; then
+  if [ "$UNKNOWN" -gt "0" ]; then
     echo -n "No temperature value available for $UNKNOWN disks";
     exit 0;
   else
