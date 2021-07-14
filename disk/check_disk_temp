@@ -94,8 +94,13 @@ done
   
 
 if [ "$TOTAL" -lt "1" ]; then
-  echo -n "No Drives found";
-  exit 3;
+  if [ "$UNKNOWN" -gt "1" ]; then
+    echo -n "No temperature value available for $UNKNOWN disks";
+    exit 0;
+  else
+    echo -n "No Drives found";
+    exit 3;
+  fi;
 fi;
 
 AVERAGE=$(($SUM / $TOTAL))
