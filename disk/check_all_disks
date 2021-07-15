@@ -4,10 +4,11 @@
 CRITICAL=2
 WARNING=1
 
-while getopts 'hc:w:' flag; do
+while getopts 'hmc:w:' flag; do
   case "${flag}" in
   c) CRITICAL="${OPTARG}" ;;
   w) WARNING="${OPTARG}" ;;
+  m) MONITORTOOL=1 ;;
   h) HELP=1 ;;
   esac
 done
@@ -21,6 +22,7 @@ if [ $HELP ]; then
   echo "  -h    This help page"
   echo "  -c    Returns a Critical error if more than this many drives are broken Default:2"
   echo "  -w    Returns a warning if more than this many drives are broken Default:1"
+  echo "  -m    Use check_smart.pl from Napsty"
   echo " "
   echo " "
   echo "Example"
@@ -38,12 +40,18 @@ echo "$DRIVES" | (
   while read -r DRIVE CONNECTION; do
 
     if [ "$CONNECTION" == "sas" ] || [ "$CONNECTION" == "sata" ]; then
-      sudo /usr/lib64/nagios/plugins/check_ide_smart -q -d /dev/$DRIVE
+      if [ $MONITORTOOL ]; then
+        DIR=$(dirname "$0")
+        OUTPUT=$(sudo $DIR/check_smart.pl -q -i auto -d /dev/$DRIVE)
+      else
+        sudo /usr/lib64/nagios/plugins/check_ide_smart -d /dev/$DRIVE
+      fi
       RESULT=$?
       TOTAL=$((TOTAL + 1))
       if [ "$RESULT" -eq "0" ]; then
         OK=$((OK + 1))
       else
+        echo "/dev/$DRIVE FAILED"
         FAILED=$((FAILED + 1))
       fi
     fi
