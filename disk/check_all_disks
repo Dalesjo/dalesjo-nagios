@@ -38,10 +38,10 @@ FAILED=0
 
 echo "$DRIVES" | (
   while read -r DRIVE CONNECTION; do
-
+    
+    DIR=$(dirname "$0")
     if [ "$CONNECTION" == "sas" ] || [ "$CONNECTION" == "sata" ]; then
       if [ $MONITORTOOL ]; then
-        DIR=$(dirname "$0")
         OUTPUT=$(sudo $DIR/check_smart.pl -q -i auto -d /dev/$DRIVE)
       else
         sudo /usr/lib64/nagios/plugins/check_ide_smart -d /dev/$DRIVE
@@ -51,7 +51,7 @@ echo "$DRIVES" | (
       if [ "$RESULT" -eq "0" ]; then
         OK=$((OK + 1))
       else
-        echo "/dev/$DRIVE FAILED"
+        echo "/dev/$DRIVE FAILED ($DIR/check_smart.pl -q -i auto -d /dev/$DRIVE)"
         FAILED=$((FAILED + 1))
       fi
     fi
