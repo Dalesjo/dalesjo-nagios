@@ -1,5 +1,12 @@
+# Permissions
+If you are using these tests with NRPE. you must add user nrpe as in group varnish and specify working directory or secret file for each script. 
+```
+gpasswd --add icinga varnish
+```
+
 # NRPE
-If you are using these tests with NRPE. you must add user nrpe as in group varnish and specify working directory or secret file for each script. Below is an example of an configuration for nrpe.
+Below is an example of an configuration for nrpe.
+
 
 ```
 command[varnish]=/usr/lib64/nagios/plugins/check_procs -c 1: -w 1: -C varnishd

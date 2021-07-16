@@ -4,6 +4,7 @@ You want to add the following values to your sudoers to allow the smart check to
 ```
 icinga ALL=NOPASSWD:  /usr/lib64/nagios/plugins/check_ide_smart -q -d *
 icinga ALL=NOPASSWD: /home/icinga/bin/disk/check_smart.pl -q -i auto -d /dev/*
+icinga ALL = NOPASSWD: /sbin/zpool status zfs-pool-1
 ```
 
 
