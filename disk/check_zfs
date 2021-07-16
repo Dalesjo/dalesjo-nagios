@@ -64,14 +64,19 @@ if [ "${ERRORS}" ]; then
     exit 1;
 fi
 
+# Check if scrubbing is in progress.
+if [ $(echo "$OUTPUT" | egrep -c "scrub in progress") -ge 1 ]; then
+  exit 0
+fi
+
+# Check when last scrub was performed.
 CURRENTDATE=$(date +%s)
 SCRUBEXPIRE=7776000
-SCRUBRAWDATE=$(echo "$OUTPUT" | grep scrub | awk '{print $11" "$12" " $13" " $14" "$15}')
+SCRUBRAWDATE=$(echo "$OUTPUT" | grep scrub | awk '{print $(NF-4)" "$(NF-3)" " $(NF-2)" " $(NF-1)" "$(NF)}')
 SCRUBDATE=$(date -d "$SCRUBRAWDATE" +%s)
 
 if [ $(($CURRENTDATE - $SCRUBDATE)) -ge $SCRUBEXPIRE ]; then
   exit 1;
 fi
-
 
 exit 0;
