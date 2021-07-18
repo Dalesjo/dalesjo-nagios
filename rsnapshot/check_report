@@ -1,26 +1,22 @@
 #!/bin/bash
 
-while getopts 'r:c:w:C:W:A:' flag; do
+while getopts 'r:w:W:A:' flag; do
   case "${flag}" in
     r) REPORT="${OPTARG}" ;;
-    c) CRITICAL="${OPTARG}" ;;
     w) WARNING="${OPTARG}" ;;
-    C) CRITICALFILES="${OPTARG}" ;;
     W) WARNINGFILES="${OPTARG}" ;;
     A) MAXAGE="${OPTARG}" ;;
   esac
 done
 
-if [ -z $REPORT ] || [ -z $CRITICAL ]  || [ -z $WARNING ] || [ -z $CRITICALFILES ]  || [ -z $WARNINGFILES ] || [ -z $MAXAGE ]; then
+if [ -z $REPORT ] || [ -z $WARNING ] || [ -z $WARNINGFILES ] || [ -z $MAXAGE ]; then
   echo "check_size [OPTIONS...]"
   echo "";
   echo "Reads text report and returns total size";
   echo "";
   echo "Flags:";
   echo "  -r    report file to read"
-  echo "  -c    if backup larger than this amount of bytes report a critical error"
   echo "  -w    if backup larger than this amount of bytes report a warning"
-  echo "  -C    if backup consist of more than this amount of files report a critical error"
   echo "  -W    if backup consist of more than this amount of files report a warning"
   echo "  -A    if latest file is older than this many hours report a critical error"
   echo " "
@@ -47,11 +43,11 @@ AGE=`expr $NOW - $DATE`
 HOURS=`expr $AGE / 3600`
 
 echo "backup is $SIZE_HUMAN with $FILES_HUMAN files and is $HOURS hours old | \
-HOURS=${SIZE};${WARNING};${CRITICAL} \
-FILES=${FILES};${WARNINGFILES};${CRITICALFILES} \
+HOURS=${SIZE} \
+FILES=${FILES} \
 AGE=$HOURS";
 
-if [ $SIZE -ge $CRITICAL ] || [ $FILES -ge $CRITICALFILES ] || [ $HOURS -ge $MAXAGE ]; then
+if [ $HOURS -ge $MAXAGE ]; then
   exit 2;
 fi;
 
