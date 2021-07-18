@@ -10,7 +10,7 @@ while getopts 'r:w:W:A:' flag; do
 done
 
 if [ -z $REPORT ] || [ -z $WARNING ] || [ -z $WARNINGFILES ] || [ -z $MAXAGE ]; then
-  echo "check_size [OPTIONS...]"
+  echo "check_report [OPTIONS...]"
   echo "";
   echo "Reads text report and returns total size";
   echo "";
@@ -21,7 +21,7 @@ if [ -z $REPORT ] || [ -z $WARNING ] || [ -z $WARNINGFILES ] || [ -z $MAXAGE ]; 
   echo "  -A    if latest file is older than this many hours report a critical error"
   echo " "
   echo "Example"
-  echo "./check_size -r /home/backup/report -c 200000000000 -w 100000000000"
+  echo "./check_report -r /home/backup/report -w 100000000000 -W 400 -A 2880"
   exit 3;
 fi;
 
