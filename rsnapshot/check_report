@@ -1,16 +1,17 @@
 #!/bin/bash
 
-while getopts 'r:c:w:C:W:' flag; do
+while getopts 'r:c:w:C:W:A:' flag; do
   case "${flag}" in
     r) REPORT="${OPTARG}" ;;
     c) CRITICAL="${OPTARG}" ;;
     w) WARNING="${OPTARG}" ;;
     C) CRITICALFILES="${OPTARG}" ;;
     W) WARNINGFILES="${OPTARG}" ;;
+    A) MAXAGE="${OPTARG}" ;;
   esac
 done
 
-if [ -z $REPORT ] || [ -z $CRITICAL ]  || [ -z $WARNING ] || [ -z $CRITICALFILES ]  || [ -z $WARNINGFILES ]; then
+if [ -z $REPORT ] || [ -z $CRITICAL ]  || [ -z $WARNING ] || [ -z $CRITICALFILES ]  || [ -z $WARNINGFILES ] || [ -z $MAXAGE ]; then
   echo "check_size [OPTIONS...]"
   echo "";
   echo "Reads text report and returns total size";
@@ -21,6 +22,7 @@ if [ -z $REPORT ] || [ -z $CRITICAL ]  || [ -z $WARNING ] || [ -z $CRITICALFILES
   echo "  -w    if backup larger than this amount of bytes report a warning"
   echo "  -C    if backup consist of more than this amount of files report a critical error"
   echo "  -W    if backup consist of more than this amount of files report a warning"
+  echo "  -A    if latest file is older than this many hours report a critical error"
   echo " "
   echo "Example"
   echo "./check_size -r /home/backup/report -c 200000000000 -w 100000000000"
@@ -38,12 +40,27 @@ FILES_HUMAN=`numfmt --to=si $FILES | tr -d '\n'`
 SIZE=`head -3 $REPORT | tail -n1`
 SIZE_HUMAN=`numfmt --to=si --suffix=B $SIZE | tr -d '\n'`
 
-echo "backup is $SIZE_HUMAN with $FILES_HUMAN files | HOURS=${SIZE};${WARNING};${CRITICAL} FILES=${FILES};${WARNINGFILES};${CRITICALFILES};";
+LINE=`head -1 $REPORT`
+DATE=`echo $LINE | awk '{print $1}' | cut -d "." -f 1`
+NOW=`date +%s`
+AGE=`expr $NOW - $DATE`
+HOURS=`expr $AGE / 3600`
 
-if [ $SIZE -ge $CRITICAL ] || [ $FILES -ge $CRITICALFILES ] ; then
+echo "backup is $SIZE_HUMAN with $FILES_HUMAN files and is $HOURS hours old | \
+HOURS=${SIZE};${WARNING};${CRITICAL} \
+FILES=${FILES};${WARNINGFILES};${CRITICALFILES} \
+AGE=$HOURS";
+
+if [ $SIZE -ge $CRITICAL ] || [ $FILES -ge $CRITICALFILES ] || [ $HOURS -ge $MAXAGE ]; then
   exit 2;
-elif [ $SIZE -ge $WARNING ] || [ $FILES -ge $WARNINGFILES ]; then
-  exit 1;
-else
-  exit 0;
 fi;
+
+if [ $SIZE -ge $WARNING ] || [ $FILES -ge $WARNINGFILES ]; then
+  exit 1;
+fi;
+
+if test `find $REPORT -mmin +2880`; then
+  exit 1;
+fi;
+
+exit 0;
