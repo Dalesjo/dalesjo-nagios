@@ -4,12 +4,13 @@
 CRITICAL=2
 WARNING=1
 
-while getopts 'hmc:w:' flag; do
+while getopts 'hmc:w:i:' flag; do
   case "${flag}" in
   c) CRITICAL="${OPTARG}" ;;
   w) WARNING="${OPTARG}" ;;
   m) MONITORTOOL=1 ;;
   h) HELP=1 ;;
+  i) IGNORE="${OPTARG}" ;;
   esac
 done
 
@@ -23,10 +24,11 @@ if [ $HELP ]; then
   echo "  -c    Returns a Critical error if more than this many drives are broken Default:2"
   echo "  -w    Returns a warning if more than this many drives are broken Default:1"
   echo "  -m    Use check_smart.pl from Napsty"
+  echo "  -i    only used togheter with check_smart.pl Comma separated list of SMART attribute names or numbers which should be excluded (=ignored) with regard to checks"
   echo " "
   echo " "
   echo "Example"
-  echo "./check_all_disks -c 2 -w 1"
+  echo "./check_all_disks -c 2 -w 1 -m -i Reallocated_Sector_Ct=10"
   exit 3
 fi
 
@@ -38,11 +40,15 @@ FAILED=0
 
 echo "$DRIVES" | (
   while read -r DRIVE CONNECTION; do
-    
+
     DIR=$(dirname "$0")
     if [ "$CONNECTION" == "sas" ] || [ "$CONNECTION" == "sata" ]; then
       if [ $MONITORTOOL ]; then
-        OUTPUT=$(sudo $DIR/check_smart.pl -q -i auto -d /dev/$DRIVE)
+        if [ -z $IGNORE ]; then
+          OUTPUT=$(sudo $DIR/check_smart.pl -q -i auto -d /dev/$DRIVE)
+        else
+          OUTPUT=$(sudo $DIR/check_smart.pl -q -i auto -d /dev/$DRIVE -w $IGNORE)
+        fi
       else
         sudo /usr/lib64/nagios/plugins/check_ide_smart -d /dev/$DRIVE
       fi
