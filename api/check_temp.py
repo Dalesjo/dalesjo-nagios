@@ -12,6 +12,7 @@ ap.add_argument("-T", "--maxTemperature", default=100, help="Max temperature bef
 ap.add_argument("-M", "--maxHumidity", default=100, help="Max humidity before warning",type=float )
 ap.add_argument("-t", "--minTemperature", default=-100, help="Minimum temperature before warning",type=float )
 ap.add_argument("-m", "--minHumidity", default=0, help="Minimum humidity before warning",type=float )
+ap.add_argument("-a", "--age", default=3600, help="How old measurmant is allowed to be, in seconds",type=float )
 args = vars(ap.parse_args())
 
 
@@ -39,7 +40,11 @@ with urllib.request.urlopen(url) as response:
 
     if(data["humidity"] < args["minHumidity"]):
         print("Humidity to low ("+ str(data["humidity"]) +") | "+ stats)
-        sys.exit(1)   
+        sys.exit(1)
+
+    if(data["age"] > args["age"]):
+        print("Measurment is "+ str(data["age"]) +" seconds old | "+ stats)
+        sys.exit(1)           
 
     print("Temperature is "+ str(data["temperature"]) +" ("+ str(data["humidity"]) +"%) | "+ stats)
     sys.exit(0)                       
