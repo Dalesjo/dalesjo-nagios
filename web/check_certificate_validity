@@ -1,0 +1,88 @@
+#!/bin/bash
+
+WARNING=14
+CRITICAL=7
+PORT=443
+TIMEOUT=15
+
+while getopts 'h:d:w:c:t:' flag; do
+  case "${flag}" in
+  h) HOST="${OPTARG}" ;;
+  d) DOMAIN="${OPTARG}" ;;
+  w) WARNING="${OPTARG}" ;;
+  c) CRITICAL="${OPTARG}" ;;
+  p) PORT="${OPTARG}" ;;
+  t) TIMEOUT="${OPTARG}" ;;
+  esac
+done
+
+if [ -z $HOST ]; then
+  HOST=$DOMAIN
+fi
+
+if [ -z $DOMAIN ]; then
+  echo "check_certificate_validity [OPTIONS...]"
+  echo ""
+  echo "uses zonemaster to verify that your domain is correctly setup."
+  echo ""
+  echo "Flags:"
+  echo "  -d    domain name to check"
+  echo "  -h    ip-number or domainname of server to check (optional)"
+  echo "  -c    return critical if domain is valid less than this many days (default: 7)"
+  echo "  -w    return warning if domain is valid less than this many days (default: 14)"
+  echo "  -p    which port to connect to (default: 443)"
+  echo "  -t    maximum amount of seconds we will wait to try to establish connection. (default: 15)"
+  echo " "
+  echo " "
+  echo "Example"
+  echo "check_certificate_validity -d example.com -c 10 -w 20"
+  exit 3
+fi
+
+# Use openssl to check the certificate of the domain
+CERT_COMMAND=$(timeout $TIMEOUT openssl s_client -connect "$HOST":$PORT -servername "$DOMAIN" -showcerts </dev/null 2>/dev/null)
+CERT_STATUS=$?
+
+if [ "$CERT_STATUS" -gt 0 ]; then
+  echo "openssl command failed for $DOMAIN on $HOST:$PORT"
+  echo "Verify that you can connect to host on port $PORT"
+  echo "Command is automaticly aborted if connection could not be established in $TIMEOUT seconds."
+  exit 2
+fi
+
+CERT_DATA=$(echo "$CERT_COMMAND" | openssl x509 -dates -subject -noout)
+
+if [ -z "$CERT_DATA" ]; then
+  echo "Could not retrieve certificate information for domain: $DOMAIN on host: $HOST"
+  echo "$CERT_DATA"
+  exit 2
+fi
+
+CN=$(echo "$CERT_DATA" | grep -oE 'CN\s*=\s*[^,]*' | awk -F= '{print $2}' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+if [ "$CN" != "$DOMAIN" ]; then
+  echo "Expected certificate: $DOMAIN but got $CN on host $HOST"
+  exit 2
+fi
+
+NOT_AFTER=$(echo "$CERT_DATA" | awk -F= '/notAfter/ {print $2}')
+EXPIRE_EPOCH=$(date '+%s' --date="$NOT_AFTER")
+
+CURRENT_EPOCH=$(date '+%s')
+REMAINING_DAYS=$((($EXPIRE_EPOCH - $CURRENT_EPOCH) / (24 * 3600)))
+
+if [ "$REMAINING_DAYS" -lt $CRITICAL ]; then
+  echo "Certificate $DOMAIN on host $HOST will expire withing $REMAINING_DAYS days."
+  echo " | REMAINING_DAYS=$REMAINING_DAYS"
+  exit 2
+fi
+
+if [ "$REMAINING_DAYS" -lt $WARNING ]; then
+  echo "Certificate $DOMAIN on host $HOST will expire withing $REMAINING_DAYS days."
+  echo " | REMAINING_DAYS=$REMAINING_DAYS"
+  exit 1
+fi
+
+echo "Certificate $DOMAIN on host $HOST is valid $REMAINING_DAYS days."
+echo " | REMAINING_DAYS=$REMAINING_DAYS"
+exit 0

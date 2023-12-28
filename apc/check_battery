@@ -1,0 +1,7 @@
+#!/bin/bash
+# FIX APC Response from SNMP
+# This means that you have the following alternatives:
+# Divide the value by 100 to get a reading in seconds.
+# Divide the value by 6000 to get a reading in minutes. (As suggested by AndrewG, also my favorite choice)
+
+'/usr/lib/nagios/plugins/check_snmp' $@ | awk -F'|' '{split($1,array_left,"-");} {split($2,array_right,"=");} {print array_left[1]"- "array_left[2]/6000"|"array_right[1]"="array_right[2]/6000;}'

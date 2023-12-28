@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# Defaults
+CRITICAL="CRITICAL"
+WARNING="WARNING"
+
+while getopts 'c:w:u:' flag; do
+  case "${flag}" in
+  c) CRITICAL="${OPTARG}" ;;
+  w) WARNING="${OPTARG}" ;;
+  u) URL="${OPTARG}" ;;
+  esac
+done
+
+if [ -z $CRITICAL ] || [ -z $WARNING ] || [ -z $URL ]; then
+  echo "check_website [OPTIONS...]"
+  echo ""
+  echo "Checks website for any existans of of the word "
+  echo ""
+  echo "Flags:"
+  echo "  -c    a critical word to search for"
+  echo "  -w    a warning word to search for "
+  echo "  -u    the url"
+  echo ""
+  echo "Exitcodes:"
+  echo " 0      Ok"
+  echo " 1      We found fewer items than the warning threshold"
+  echo " 2      We found fewer items than the critical threshold"
+  echo " 3      Something is wrong."
+  echo ""
+  echo "Example"
+  echo "./check_website -c 'critical' -w 'warning' -u 'https://example.com/network.php'"
+  exit 3
+fi
+
+RESPONSE=$(curl -s ${URL} --user-agent "Icinga/check_website")
+
+echo "$RESPONSE"
+
+if [[ "$RESPONSE" == *"$CRITICAL"* ]]; then
+  exit 2
+elif [[ "$RESPONSE" == *"$WARNING"* ]]; then
+  exit 1
+else
+  exit 0
+fi

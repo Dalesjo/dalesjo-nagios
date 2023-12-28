@@ -1,0 +1,53 @@
+#!/usr/bin/python3
+
+import argparse
+import sys
+import json
+import os
+import subprocess
+
+def check_certificates(directory, certificates,ignore):
+	#items = os.listdir(directory)
+	#os.chdir(directory)
+
+	command = f"sudo find {directory} -maxdepth 1 -mindepth 1 -type d -exec basename {{}} \\;"
+	result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+	
+	output = os.popen(command)
+
+	failed = 0
+	total = 0
+
+	for item in output.split('\n'):
+		
+		total += 1
+
+		if item in certificates:
+			continue
+		
+		if item in ignore:
+			continue
+
+		failed += 1
+
+		print(f"Certificate not monitored: {item}")
+
+	print(f' | TOTAL={total}, NEW={failed}')
+
+	if(failed > 0):
+		sys.exit(1)
+	
+	print("All containers are being monitored.")
+
+
+def main():
+	parser = argparse.ArgumentParser(description="Check that every certificate is monitored")
+	parser.add_argument("-H", "--directory", type=str, help="Specify the directory to check for certificates", default="/etc/letsencrypt/live/")
+	parser.add_argument("-c", "--certificates", nargs='+', help="Specify the domainnames that are being monitored.", default=[])
+	parser.add_argument("-i", "--ignore", nargs='+', help="Certificates that should be ignored.", default=[])
+	args = parser.parse_args()
+
+	check_certificates(args.directory, args.certificates,args.ignore)
+
+if __name__ == "__main__":
+    main()
