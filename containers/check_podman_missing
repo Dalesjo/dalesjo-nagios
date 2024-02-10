@@ -1,0 +1,48 @@
+#!/usr/bin/python3
+# for centos 7 run
+# yum install python3 -y
+
+import argparse
+import sys
+import json
+import os
+from datetime import datetime
+
+
+parser = argparse.ArgumentParser(description="Check Podman for long running containers that should be monitored")
+parser.add_argument("-c", "--container", nargs='+', help="Specify container(s) to check", default=[])
+parser.add_argument("-t", "--time", type=int, help="Minimum time (seconds) a container must run before we warn", default=3600)
+args = parser.parse_args()
+
+containers = args.container
+now = int(datetime.now().timestamp())
+output = os.popen('sudo podman ps -a --format json --sort=names')
+runningContainers = json.load(output)
+failed = 0
+total = 0
+
+for container in runningContainers:
+        startedAt = container["StartedAt"]
+        runningTime = now - startedAt
+        pod = container["Pod"]
+        names = container["Names"]
+        first_name = names[0]
+
+        if any("pod" in name for name in names):
+                continue
+
+        total += 1
+
+        if any(name in names for name in containers):
+                continue
+
+        if(runningTime > args.time):
+                failed += 1
+                print(f'Container {first_name} has been running for {runningTime}s')
+
+print(f' | TOTAL={total}, NEW={failed}')
+
+if(failed > 0):
+        sys.exit(1)
+
+print("All containers are being monitored.")
