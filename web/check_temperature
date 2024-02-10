@@ -1,0 +1,74 @@
+#!/bin/bash
+
+TEMPERATURE_UPPER_LIMIT=30.0
+TEMPERATURE_LOWER_LIMIT=20.0
+HUMIDITY_UPPER_LIMIT=30.0
+HUMIDITY_LOWER_LIMIT=10.0
+
+while getopts 'h:U:L:u:l:' flag; do
+	case "${flag}" in
+	h) HOST="${OPTARG}" ;;
+	U) TEMPERATURE_UPPER_LIMIT="${OPTARG}" ;;
+	L) TEMPERATURE_LOWER_LIMIT="${OPTARG}" ;;
+	u) HUMIDITY_UPPER_LIMIT="${OPTARG}" ;;
+	l) HUMIDITY_LOWER_LIMIT="${OPTARG}" ;;
+	esac
+done
+
+if [ -z $HOST ]; then
+	echo "check_certificate_validity [OPTIONS...]"
+	echo ""
+	echo "Makes an http request to an http sensor and check the temperature/humidity"
+	echo ""
+	echo "Flags:"
+	echo "  -h    domain name or ip-number of temperature sensor"
+	echo "  -U    Critical if temperature is above this value"
+	echo "  -L    Critical if temperature is below this value"
+	echo "  -u    Critical if humidity is above this value"
+	echo "  -l    Critical if humidity is below this value"
+	echo " "
+	echo " "
+	echo "Example"
+	echo "check_temperature -h pico.home -U 25 -L 20"
+	exit 3
+fi
+
+# Fetch the website content
+WEBSITE_CONTENT=$(curl -s "http://$HOST")
+
+# Parse temperature and humidity values
+TEMPERATURE=$(echo "$WEBSITE_CONTENT" | grep -oP 'Temperature: \K[-0-9.]+')
+HUMIDITY=$(echo "$WEBSITE_CONTENT" | grep -oP 'Humidity: \K[-0-9.]+')
+ADJUST=$(echo "$WEBSITE_CONTENT" | grep -oP 'ADJUST: \K[-0-9.]+')
+PERFORMANCE=" | TEMPERATURE=$TEMPERATURE HUMIDITY=$HUMIDITY ADJUST=$ADJUST"
+
+# Define threshold values
+
+if [ "$(echo "$TEMPERATURE < $TEMPERATURE_LOWER_LIMIT" | bc -l)" -eq 1 ]; then
+	echo "CRITICAL - Temperature $TEMPERATURE is below $TEMPERATURE_LOWER_LIMIT"
+	echo $PERFORMANCE
+	exit 2
+fi
+
+if [ "$(echo "$TEMPERATURE > $TEMPERATURE_UPPER_LIMIT" | bc -l)" -eq 1 ]; then
+	echo "CRITICAL - Temperature $TEMPERATURE is above $TEMPERATURE_UPPER_LIMIT"
+	echo $PERFORMANCE
+	exit 2
+fi
+
+if [ "$(echo "$HUMIDITY < $HUMIDITY_LOWER_LIMIT" | bc -l)" -eq 1 ]; then
+	echo "CRITICAL - Humidity $HUMIDITY is below $HUMIDITY_LOWER_LIMIT"
+	echo $PERFORMANCE
+	exit 2
+fi
+
+if [ "$(echo "$HUMIDITY > $HUMIDITY_UPPER_LIMIT" | bc -l)" -eq 1 ]; then
+	echo "CRITICAL - Humidity $HUMIDITY is above $HUMIDITY_UPPER_LIMIT"
+	echo $PERFORMANCE
+	exit 2
+fi
+
+echo "TEMPERATURE $TEMPERATURE"
+echo "HUMIDITY $HUMIDITY"
+echo $PERFORMANCE
+exit 0
