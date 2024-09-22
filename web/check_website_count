@@ -5,21 +5,21 @@ URL="/"
 
 while getopts 'c:w:H:d:p:q:' flag; do
   case "${flag}" in
-    c) CRITICAL="${OPTARG}" ;;
-    w) WARNING="${OPTARG}" ;;
-    H) HOST="${OPTARG}" ;;
-    d) DOMAIN="${OPTARG}" ;;
-    p) URL="${OPTARG}" ;;
-    q) QUERY="${OPTARG}" ;;
+  c) CRITICAL="${OPTARG}" ;;
+  w) WARNING="${OPTARG}" ;;
+  H) HOST="${OPTARG}" ;;
+  d) DOMAIN="${OPTARG}" ;;
+  p) URL="${OPTARG}" ;;
+  q) QUERY="${OPTARG}" ;;
   esac
 done
 
-if [ -z $CRITICAL ] || [ -z $WARNING ] || [ -z $HOST ] || [ -z $DOMAIN ] || [ -z $QUERY ] ; then
+if [ -z $CRITICAL ] || [ -z $WARNING ] || [ -z $HOST ] || [ -z $DOMAIN ] || [ -z $QUERY ]; then
   echo "check_website_count [OPTIONS...]"
-  echo "";
+  echo ""
   echo "Count how many times we can find a string on website"
-  echo "";
-  echo "Flags:";
+  echo ""
+  echo "Flags:"
   echo "  -c    Minmum occurences of string before it becomes critical"
   echo "  -w    Minmum occurences of string before a warning is showned"
   echo "  -H    IP-number of the domain name we want to test"
@@ -28,26 +28,25 @@ if [ -z $CRITICAL ] || [ -z $WARNING ] || [ -z $HOST ] || [ -z $DOMAIN ] || [ -z
   echo "  -q    The string we are searching for."
   echo ""
   echo "Exitcodes:"
-  echo "  0     Ok";
-  echo "  1     We found fewer items than the warning threshold";
-  echo "  2     We found fewer items than the critical threshold";
-  echo "  3     Something is wrong.";
+  echo "  0     Ok"
+  echo "  1     We found fewer items than the warning threshold"
+  echo "  2     We found fewer items than the critical threshold"
+  echo "  3     Something is wrong."
   echo ""
   echo "Example"
   echo "./check_website_count -c 100 -w 200 -H 198.51.100.2 -d 'example.com' -p / -q '<img'"
-  exit 3;
-fi;
+  exit 3
+fi
 
-RESPONSE=$(curl -s "https://${DOMAIN}${URL}" --resolve "${DOMAIN}:443:${HOST}" --user-agent "Icinga/check_website_count");
-COUNT=$(echo "${RESPONSE}" | grep -o ${QUERY} | wc -l);
+RESPONSE=$(curl -s "https://${DOMAIN}${URL}" --resolve "${DOMAIN}:443:${HOST}" --user-agent "Icinga/check_website_count")
+COUNT=$(echo "${RESPONSE}" | grep -o ${QUERY} | wc -l)
 
-echo "Found ${COUNT} of '${QUERY}' | COUNT=${COUNT}";
+echo "Found ${COUNT} of '${QUERY}' | COUNT=${COUNT}"
 
 if [ "$COUNT" -lt "$CRITICAL" ]; then
-  exit 2;
+  exit 2
 elif [ "$COUNT" -lt "$WARNING" ]; then
-  exit 1;
+  exit 1
 else
-  exit 0;
-fi;
-
+  exit 0
+fi
