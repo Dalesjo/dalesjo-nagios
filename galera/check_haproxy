@@ -1,0 +1,54 @@
+#!/bin/bash
+
+PORT="9000"
+
+while getopts 'u:p:H:h' flag; do
+    case "${flag}" in
+    u) USERNAME="${OPTARG}" ;;
+    p) PASSWORD="${OPTARG}" ;;
+    H) HOST="${OPTARG}" ;;
+    P) PORT="${OPTARG}" ;;
+    h) HELP='true' ;;
+    esac
+done
+
+if [ $HELP ] || [ -z $USERNAME ] || [ -z $PASSWORD ] || [ -z $HOST ]; then
+    echo "check_haproxy"
+    echo ""
+    echo "Checks audio level on any ffmpleg playable stream."
+    echo ""
+    echo "Flags:"
+    echo "  -H    host name or ip-number for haproxy server"
+    echo "  -P    port to connect to (default 9000)"
+    echo "  -p    password to access haproxy"
+    echo "  -u    username to access haproxy"
+    echo ""
+    echo "Example"
+    echo "./check_haproxy '-H' '127.0.0.1' '-p' 'mypassword' '-u' 'admin'"
+    exit 3
+fi
+
+# HAProxy stats URL and credentials (if applicable)
+HAPROXY_STATS_URL="http://${HOST}:${PORT}/stats;csv"
+RESPONSE=$(curl -u "$USERNAME:$PASSWORD" -s --connect-timeout 10 -w "%{http_code}" "$HAPROXY_STATS_URL")
+
+if [ $? -ne 0 ]; then
+    echo "CRITICAL - HAProxy stats page '$HAPROXY_STATS_URL' unreachable"
+    exit 2
+fi
+
+HTTP_STATUS=${RESPONSE: -3}
+if [ "$HTTP_STATUS" -ne 200 ]; then
+    echo "CRITICAL - HAProxy stats page returned HTTP status $HTTP_STATUS"
+    exit 2
+fi
+
+BACKENDS=$(echo "$RESPONSE" | awk -F, '$18 == "DOWN" {print $1 " (" $2 ")"}')
+
+if [ -n "$BACKENDS" ]; then
+    echo "CRITICAL - The following backends are DOWN: \n\n$BACKENDS"
+    exit 2
+fi
+
+echo "OK - All HAProxy backends are UP"
+exit 0
