@@ -41,7 +41,7 @@ FFMPEGEXIT=$?
 
 if [ "${FFMPEGEXIT}" -gt "0" ]; then
   echo "FFMPEG could not play ${INPUT}";
-  exit 3;
+  exit 2;
 fi
 
 OUTPUT=`echo "${OUTPUT}" | grep "Parsed_volumedetect_"`
