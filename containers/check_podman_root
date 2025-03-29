@@ -2,15 +2,18 @@
 # for centos 7 run
 # yum install python3 -y
 
+import argparse
 import os
 import json
 import sys
 
+ap = argparse.ArgumentParser()
+ap.add_argument("-c", "--container", nargs='+', help="Specify container(s) to ignore", default=[])
+args = ap.parse_args()
 
-
-output = os.popen('sudo podman ps --all --format json')
+output = os.popen('sudo podman ps -a --format json --sort=names')
 containers = json.load(output)
-
+ignore_list = args.ignore
 root_containers = []
 
 for container in containers:
@@ -22,10 +25,13 @@ for container in containers:
         print(f"Skipping infra container {container_name}")
         continue
 
+    if container_name in ignore_list:
+        print(f"Skipping ignored container {container_name}")
+        continue
+
     print(f"container {container_name}", end="")
 
-    inspect_output = os.popen(f'sudo podman inspect {container_id} --format "{{{{.Config.User}}}}"').read().strip()
-
+    inspect_output = os.popen(f'sudo podman inspect --format "{{{{.Config.User}}}}" {container_id}').read().strip()
 
     if inspect_output:
         whoami_output = inspect_output
@@ -45,7 +51,3 @@ if root_containers:
 else:
     print("No containers are running as root.")
     sys.exit(0)
-
-
-
-

@@ -9,5 +9,8 @@ If you run the script with nrpe you will need to add the podman command to sudoe
 ```bash
 cat <<EOF >> /etc/sudoers.d/icinga
 icinga ALL=NOPASSWD: /usr/bin/podman stats --all --no-stream --format json
+icinga ALL=NOPASSWD: /usr/bin/podman ps -a --format json --sort=names
+icinga ALL=NOPASSWD: /usr/bin/podman inspect --format *
+
 EOF
 ```

@@ -1,0 +1,35 @@
+#!/usr/bin/python3
+
+
+import argparse
+import sys
+import json
+import os
+import subprocess
+
+def check_remote(command, ssh, host, username, containers):
+
+    remote_command = f"{command} -i {' '.join(containers)}"
+    if not containers:
+        remote_command = f"{command}"
+        
+    check_command = [f"{ssh}", "-H",  host, "-l", username, "-C", remote_command]
+    process = subprocess.run(check_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+    print(process.stdout)
+    sys.exit(process.returncode)
+
+
+def main():
+	parser = argparse.ArgumentParser(description="Check Podman with multiple containers.")
+	parser.add_argument("-p", "--command", type=str, help="Specify container(s) to check", default="/home/icinga/bin/containers/check_podman_root")
+	parser.add_argument("-s", "--ssh", type=str, help="Specify container(s) to check", default="/usr/lib/nagios/plugins/check_by_ssh")
+	parser.add_argument("-H", "--host", type=str, help="Specify container(s) to check", required=True)
+	parser.add_argument("-U", "--username", type=str, help="Specify container(s) to check", default="icinga")
+	parser.add_argument("-c", "--container", nargs='+', help="Specify container(s) to check", default=[])
+	args = parser.parse_args()
+
+	check_remote(args.command, args.ssh, args.host, args.username, args.container)
+
+if __name__ == "__main__":
+    main()
