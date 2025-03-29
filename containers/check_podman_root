@@ -13,7 +13,7 @@ args = ap.parse_args()
 
 output = os.popen('sudo podman ps -a --format json --sort=names')
 containers = json.load(output)
-ignore_list = args.ignore
+ignore_list = args.container
 root_containers = []
 
 for container in containers:
