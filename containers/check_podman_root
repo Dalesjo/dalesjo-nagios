@@ -1,0 +1,51 @@
+#!/usr/bin/python3
+# for centos 7 run
+# yum install python3 -y
+
+import os
+import json
+import sys
+
+
+
+output = os.popen('sudo podman ps --all --format json')
+containers = json.load(output)
+
+root_containers = []
+
+for container in containers:
+    container_id = container["Id"]
+    container_name = container["Names"][0]
+    whoami_output = ""
+
+    if "IsInfra" in container and container["IsInfra"]:
+        print(f"Skipping infra container {container_name}")
+        continue
+
+    print(f"container {container_name}", end="")
+
+    inspect_output = os.popen(f'sudo podman inspect {container_id} --format "{{{{.Config.User}}}}"').read().strip()
+
+
+    if inspect_output:
+        whoami_output = inspect_output
+    else:
+        whoami_output = "root"
+
+    print(f" is running as '{whoami_output}'")
+    if whoami_output == "root" or whoami_output == "0":
+        root_containers.append(container_name)
+
+print("")
+if root_containers:
+    print("The following containers are running as root:")
+    for root_container in root_containers:
+        print(f" - {root_container}")
+    sys.exit(2)
+else:
+    print("No containers are running as root.")
+    sys.exit(0)
+
+
+
+
