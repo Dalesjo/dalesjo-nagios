@@ -6,48 +6,67 @@ import argparse
 import os
 import json
 import sys
+import subprocess
+
+def get_unique_sorted_uids(uids_output):
+    """Helper function to get unique and sorted UIDs."""
+    unique_uids = set(uids_output)
+    sorted_uids = sorted(unique_uids)
+    return sorted_uids
+
+def run_command(command):
+    """Run a shell command and handle errors."""
+    try:
+        result = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT, universal_newlines=True)
+        return result.strip()
+    except subprocess.CalledProcessError as e:
+        print(f"UNKNOWN: Failed to run command '{command}'\nError: {e.output}")
+        sys.exit(3)
 
 ap = argparse.ArgumentParser()
 ap.add_argument("-c", "--container", nargs='+', help="Specify container(s) to ignore", default=[])
 args = ap.parse_args()
 
-output = os.popen('sudo podman ps -a --format json --sort=names')
-containers = json.load(output)
+output = run_command('sudo podman ps -a --format json --sort=names')
+containers = json.loads(output)
 ignore_list = args.container
-root_containers = []
+root_only_containers = []
 
 for container in containers:
     container_id = container["Id"]
     container_name = container["Names"][0]
-    whoami_output = ""
 
-    if "IsInfra" in container and container["IsInfra"]:
-        print(f"Skipping infra container {container_name}")
-        continue
+    # Check if part of a pod
+    pod_id = run_command(f'sudo podman inspect --format "{{{{.Pod}}}}" {container_id}')
+    if pod_id != "<nil>":
+        if pod_id == "<nil>" or not pod_id.strip():
+            print(f"Container {container_name} is standalone (no pod ID)")
+        else:
+            infra_id = run_command(f'sudo podman pod inspect {pod_id} --format "{{{{.InfraContainerID}}}}"')
+            if infra_id == container_id:
+                print(f"Skipping infra container {container_name}")
+                continue
 
     if container_name in ignore_list:
         print(f"Skipping ignored container {container_name}")
         continue
 
-    print(f"container {container_name}", end="")
+    print(f"Checking container {container_name} ({container_id})")
 
-    inspect_output = os.popen(f'sudo podman inspect --format "{{{{.Config.User}}}}" {container_id}').read().strip()
+    # Check UIDs of all processes in the container
+    uids_output = run_command(f'sudo podman top {container_id} uid').split('\n')[1:]
+    uids = get_unique_sorted_uids(uids_output)
 
-    if inspect_output:
-        whoami_output = inspect_output
-    else:
-        whoami_output = "root"
-
-    print(f" is running as '{whoami_output}'")
-    if whoami_output == "root" or whoami_output == "0":
-        root_containers.append(container_name)
+    if len(uids) == 1 and uids[0] == "0":
+        print(f"Container '{container_name}' ({container_id}) has ONLY root processes (UID 0)")
+        root_only_containers.append(container_name)
 
 print("")
-if root_containers:
-    print("The following containers are running as root:")
-    for root_container in root_containers:
+if root_only_containers:
+    print("The following containers have ONLY root processes:")
+    for root_container in root_only_containers:
         print(f" - {root_container}")
     sys.exit(2)
 else:
-    print("No containers are running as root.")
+    print("No containers have ONLY root processes.")
     sys.exit(0)
