@@ -1,0 +1,48 @@
+#!/bin/bash
+
+WARNING=600
+
+while getopts 'w:s:h' flag; do
+    case "${flag}" in
+    w) WARNING="${OPTARG}" ;;
+    s) SERVICE="${OPTARG}" ;;
+    h) HELP='true' ;;
+    esac
+done
+
+if [ "$HELP" == "true" ]; then
+    echo "check_service [OPTIONS...]"
+    echo ""
+    echo "nagios test, check if service is active and that it has been active for x amount of seconds"
+    echo ""
+    echo "Flags:"
+    echo "  -w    How many failed logins that has to be reached before returning warning"
+    echo "  -s    name of the service to check"
+    echo "  -h    Show this help text."
+    echo ""
+    echo "Example:"
+    echo "check_service -w 600 -s sshd"
+    exit 0
+fi
+
+if [ -z "$SERVICE" ]; then
+    echo "ERROR - Service name (-s) must be provided"
+    exit 3
+fi
+
+STATUS=$(systemctl is-active "$SERVICE")
+if [ "$STATUS" != "active" ]; then
+    echo "CRITICAL - $SERVICE is not running"
+    exit 2
+fi
+
+STARTIME=$(date -d "$(systemctl show --property=ActiveEnterTimestamp "$SERVICE" | cut -d= -f2)" +%s)
+ELAPSEDTIME=$(($(date +%s) - $STARTIME))
+
+if ((ELAPSEDTIME >= WARNING)); then
+    echo "OK - $SERVICE has been running for ${ELAPSEDTIME} seconds"
+    exit 0
+else
+    echo "WARNING - $SERVICE has only been running for ${ELAPSEDTIME} seconds"
+    exit 1
+fi
